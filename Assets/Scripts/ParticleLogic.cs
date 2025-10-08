@@ -42,6 +42,8 @@ public class ParticleLogic : MonoBehaviour
     {
         while (true)
         {
+            float sizeX = _worldManager.chunkSize.x;
+            float sizeY = _worldManager.chunkSize.y;
             foreach (WorldChunk chunk in _worldManager.GetAllChunks())
             {
                 if (chunk.chunkActive == false)
@@ -49,17 +51,32 @@ public class ParticleLogic : MonoBehaviour
                     continue;
                 }
 
-                for (int i = 0; i < chunk.GetParticles().Length; i++)
+                var particles = chunk.GetParticles();
+                // for (int i = 0; i < particles.Length; i++)
+                // {
+                //     int x = i % _worldManager.chunkSize.x;
+                //     int y = i / _worldManager.chunkSize.x;
+                //
+                //     if (particles[x, y].GetParticleType() == ParticleType.Air)
+                //     {
+                //         continue;
+                //     }
+                //
+                //     UpdateParticle(particles[x, y]);
+                // }
+                
+                for(int y = 0; y < sizeY; y++)
                 {
-                    int x = i % _worldManager.chunkSize.x;
-                    int y = i / _worldManager.chunkSize.x;
-
-                    if (chunk.GetParticles()[x, y].GetParticleType() == ParticleType.Air)
+                    for (int x = 0; x < sizeX; x++)
                     {
-                        continue;
+                        var particle = particles[x, y];
+                        if (particle.GetParticleType() == ParticleType.Air)
+                        {
+                            continue;
+                        }
+                        
+                        UpdateParticle(particle);
                     }
-
-                    UpdateParticle(chunk.GetParticles()[x, y]);
                 }
             }
 

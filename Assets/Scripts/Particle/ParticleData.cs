@@ -18,12 +18,16 @@ public class ParticleData : ScriptableObject
     public int dispersalRate;
 }
 
-public enum ParticleType
+
+// === C# defaults the underlying type to int — that’s 4 bytes per value. ==
+// === Changing it to byte reduces the memory footprint to 1 byte per value. ==
+// === Will be helpful if we have millions of particles. ==
+public enum ParticleType : byte
 {
-    Air,
-    Water,
-    Sand,
-    Wood,
-    Gas
+    Air = 0,
+    Water = 1,
+    Sand = 2,
+    Wood = 3,
+    Gas = 4
 }
 

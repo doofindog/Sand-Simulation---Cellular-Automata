@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Particle
@@ -43,11 +40,6 @@ public class Particle
 
     public ParticleData GetParticleData()
     {
-        if (m_type == ParticleType.Air)
-        {
-            return null;
-        }
-        
         return ParticleManager.GetParticleData(m_type);
     }
 

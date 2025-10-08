@@ -4,46 +4,50 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class ParticleManager : MonoBehaviour
-{
-    [FormerlySerializedAs("_particleDatas")] [SerializeField] private ParticleData[] m_particleDatas;
-    private Dictionary<ParticleType, ParticleData> _particleDataDict;
-
-    private static ParticleManager instance;
-
-    public void Awake()
+    public class ParticleManager : MonoBehaviour
     {
-        Init();
-    }
+        [FormerlySerializedAs("_particleDatas")] [SerializeField] private ParticleData[] m_particleDatas;
+        //private Dictionary<ParticleType, ParticleData> _particleDataDict;
+        private static ParticleData[] s_particleDataLookUp;
 
-    private void Init()
-    {
-        instance = this;
+        private static ParticleManager instance;
 
-        _particleDataDict = new Dictionary<ParticleType, ParticleData>();
-        foreach (ParticleData data in instance.m_particleDatas)
+        public void Awake()
         {
-            if (instance._particleDataDict.ContainsKey(data.particleType))
-            {
-                continue;
-            }
+            Init();
+        }
+
+        private void Init()
+        {
+            instance = this;
+            s_particleDataLookUp = new ParticleData[Enum.GetValues(typeof(ParticleType)).Length];
             
-            instance._particleDataDict.Add(data.particleType, data);
+            // === Rearranging Particles according to define enum ===
+            for (int i = 0; i < s_particleDataLookUp.Length; i++)
+            {
+                var data = m_particleDatas[i];
+                if (data == null)
+                {
+                    Debug.LogError($"Particle Data at index {i} is null");
+                    continue;
+                }
+                
+                int idx = (int)data.particleType;
+                if (s_particleDataLookUp[idx] != null)
+                {
+                    Debug.LogError($"Particle Data at index {i} is not null");
+                    continue;
+                }
+                
+                s_particleDataLookUp[idx] = data;
+            }
         }
-    }
 
-    public static ParticleData GetParticleData(ParticleType type)
-    {
-        if (instance._particleDataDict.ContainsKey(type))
-        {
-            return instance._particleDataDict[type];
-        }
+        // === Slightly Fast lookup ===
+        public static ParticleData GetParticleData(ParticleType particleType) => s_particleDataLookUp[(byte)particleType];
+        public static ParticleData GetParticleAtIndex(int index) => s_particleDataLookUp[index];
         
-        return null;
+        // === Safe for Testing === //
+        // public ParticleData GetDataInstance(ParticleType type) => s_particleDataLookUp[(byte)type];
+        // public ParticleData GetParticleAtIndexInstance(int index) => s_particleDataLookUp[index];
     }
-
-    public static ParticleData GetParticleAtIndex(int index)
-    {
-        return instance.m_particleDatas[index];
-    }
-}
