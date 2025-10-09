@@ -16,7 +16,7 @@ public class WorldManager : MonoBehaviour
     public Vector2Int chunkSize;
     
     
-    private WorldChunk[,] m_chunks;
+    private WorldChunk[] m_chunks;
 
     private void Awake()
     {
@@ -36,26 +36,30 @@ public class WorldManager : MonoBehaviour
             return;
         }
 
-        int xChunks = worldSize.x / chunkSize.x;
-        int yChunks = worldSize.y / chunkSize.y;
+        int chunkWidth = worldSize.x / chunkSize.x;
+        int chunkHeight = worldSize.y / chunkSize.y;
+        int totalChunks = chunkWidth + chunkHeight;
 
-        Debug.Log($"{xChunks}, {yChunks}");
+        Debug.Log($"{chunkWidth}, {chunkHeight}");
         
-        m_chunks = new WorldChunk[xChunks, yChunks];
+        m_chunks = new WorldChunk[totalChunks];
 
         GameObject world = new GameObject("World");
 
         float chunkSprintSize = chunkSize.x / pixelPerUnit; 
         Vector3 startPosition = new Vector3()
         {
-           x = Camera.main.transform.position.x - (xChunks * 0.5f) - (chunkSprintSize * 0.5f),
-           y = Camera.main.transform.position.y - (yChunks * 0.5f) - (chunkSprintSize) 
+           x = Camera.main.transform.position.x - (chunkWidth * 0.5f) - (chunkSprintSize * 0.5f),
+           y = Camera.main.transform.position.y - (chunkHeight * 0.5f) - (chunkSprintSize) 
         };
         
-        for (int y = 0; y < m_chunks.GetLength(1); y++)
+        
+        for (int y = 0; y < chunkHeight; y++)
         {
-            for (int x = 0; x < m_chunks.GetLength(0); x++)
+            for (int x = 0; x < chunkWidth; x++)
             {
+                int index = x + y;
+                
                 GameObject worldObj = new GameObject($"WorldChunk({x},{y})")
                 {
                     transform =
@@ -63,6 +67,7 @@ public class WorldManager : MonoBehaviour
                         position = startPosition 
                     }
                 };
+                
                 Texture2D worldTexture = new Texture2D(chunkSize.x,chunkSize.y)
                 {
                     filterMode = FilterMode.Point
@@ -83,7 +88,7 @@ public class WorldManager : MonoBehaviour
                 
                 worldChunk.Init(new Vector2Int(x, y), chunkSize);
                 worldChunk.transform.SetParent(world.transform);
-                m_chunks[x, y] = worldChunk;
+                m_chunks[index] = worldChunk;
             }
         }
 

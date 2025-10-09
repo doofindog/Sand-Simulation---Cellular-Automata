@@ -31,9 +31,6 @@ public class WorldChunk : MonoBehaviour
         Bounds cameraBounds =  new Bounds(
             mainCamera.transform.position,
             new Vector3(cameraHeight * screenAspect, cameraHeight, 0));
-            
-        int textureWidth = m_worldTexture.width;
-        int textureHeight = m_worldTexture.height;
         
         for(int y = 0; y < chunkSize.y; y++)
         {
