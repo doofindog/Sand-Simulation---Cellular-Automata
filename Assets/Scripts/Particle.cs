@@ -1,10 +1,11 @@
 using UnityEngine;
 
+[System.Serializable]
 public class Particle
 {
-    private Vector2Int m_position;
-    private ParticleType m_type;
-    private bool m_updated;
+    [SerializeField] private Vector2Int m_position;
+    [SerializeField] private ParticleType m_type;
+    [SerializeField] private bool m_updated;
 
     public void Init(Vector2Int position,ParticleType type = ParticleType.Air)
     {

@@ -6,10 +6,11 @@ public class WorldChunk : MonoBehaviour
     private Vector2Int m_chunkPosition;
     private Color m_defaultColor;
     private Texture2D m_worldTexture;
-    private Particle[,] m_particles;
+    [SerializeField]private Particle[] m_particles;
     private Color[] m_chuckColour;         
     private WorldChunk[] m_neighbourChunks;
-
+    private Vector2Int m_chunkSize;
+    
     //Public Variables
     public Sprite sprite;
     public bool chunkActive;
@@ -17,11 +18,14 @@ public class WorldChunk : MonoBehaviour
     
     public void Init(Vector2Int chunkPosition,Vector2Int chunkSize)
     {
+        m_chunkSize = chunkSize;
+        
         SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
         sprite = spriteRenderer.sprite;
         m_chunkPosition = chunkPosition;
         m_worldTexture = sprite.texture;
-        m_particles = new Particle[chunkSize.x, chunkSize.y];
+        Debug.Log($"Particle Size :{chunkSize.x} , {chunkSize.y}");
+        m_particles = new Particle[chunkSize.x * chunkSize.y];
 
         Camera mainCamera = Camera.main;
         Bounds bounds = spriteRenderer.bounds;
@@ -38,8 +42,9 @@ public class WorldChunk : MonoBehaviour
             for (int x = 0; x < chunkSize.y; x++)
             {
                 int xIndex = x + m_chunkPosition.x * chunkSize.x;
-                m_particles[x, y] = new Particle();
-                m_particles[x,y].Init(new Vector2Int(xIndex, yIndex));
+                int index = x + y * chunkSize.x;
+                m_particles[index] = new Particle();
+                m_particles[index].Init(new Vector2Int(xIndex, yIndex));
                 DrawPixel(new Vector2Int(x,y), Color.white);
                 
                 float xRatio = x / (float)m_worldTexture.width;
@@ -49,7 +54,7 @@ public class WorldChunk : MonoBehaviour
                 if(worldPos.x < cameraBounds.min.x || worldPos.x > cameraBounds.max.x ||
                    worldPos.y < cameraBounds.min.y || worldPos.y > cameraBounds.max.y)
                 {
-                    m_particles[x,y].AddParticle(ParticleType.Wood);
+                    m_particles[index].AddParticle(ParticleType.Wood);
                     DrawPixel(new Vector2Int(x, y), Color.red);
                 }
             } 
@@ -60,12 +65,24 @@ public class WorldChunk : MonoBehaviour
 
     public Particle GetParticleAtIndex(int x, int y)
     {
-        return m_particles[x, y];
+        int index = x + y * m_chunkSize.x; 
+        return m_particles[index];
+    }
+    
+    public Particle GetParticleAtIndex(int index)
+    {
+        return m_particles[index];
     }
 
     public bool ContainsParticle(int x, int y)
     {
         Particle particle = GetParticleAtIndex(x, y);
+        return particle != null && particle.GetParticleType() != ParticleType.Air;
+    }
+    
+    public bool ContainsParticle(int index)
+    {
+        Particle particle = GetParticleAtIndex(index);
         return particle != null && particle.GetParticleType() != ParticleType.Air;
     }
 
@@ -75,10 +92,11 @@ public class WorldChunk : MonoBehaviour
         {
             return null;
         }
-        
-        m_particles[particlePos.x, particlePos.y].AddParticle(type);
+     
+        int index = particlePos.x + particlePos.y * m_chunkSize.x;
+        m_particles[index].AddParticle(type);
         chunkActive = true;
-        return m_particles[particlePos.x, particlePos.y];
+        return m_particles[index];
     }
 
     public void DrawPixel(Vector2Int pixelPosition, Color color)
@@ -89,30 +107,38 @@ public class WorldChunk : MonoBehaviour
 
     public void UpdateTexture()
     {
+        var worldManager = WorldManager.instance;
+        int width = worldManager.chunkSize.x;
+        int height = worldManager.chunkSize.y;
+        
         for (int i = 0; i < m_particles.Length; i++)
         {
-            int x = i % WorldManager.instance.chunkSize.x;
-            int y = i / WorldManager.instance.chunkSize.y;
-
-            if (m_particles[x, y].GetParticleType() != ParticleType.Air)
+            Particle particle = m_particles[i];
+            if (particle == null)
             {
-                m_chuckColour[i] = m_particles[x, y].GetParticleData().colour;
+                Debug.Log("Particle is null at : " + i);
+                continue;
+            }
+            if (particle.GetParticleType() != ParticleType.Air)
+            {
+                m_chuckColour[i] = particle.GetParticleData().colour;
             }
             else
             {
                 m_chuckColour[i]= Color.white;
             }
 
-            if (m_particles[x, y].HasUpdated())
+            if (particle.HasUpdated())
             {
-                m_particles[x,y].SetUpdated(false);
+                particle.SetUpdated(false);
             }
         }
+        
         m_worldTexture.SetPixels(m_chuckColour);
         m_worldTexture.Apply();
     }
 
-    public Particle[,] GetParticles()
+    public Particle[] GetParticles()
     {
         return m_particles;
     }

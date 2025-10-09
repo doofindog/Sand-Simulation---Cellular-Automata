@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using DrawXXL;
 using UnityEngine;
+using UnityEngine.Profiling;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
@@ -9,6 +11,7 @@ public class ParticleLogic : MonoBehaviour
     [SerializeField] private ParticleType _selectedType = ParticleType.Sand;
     private KeyCode[] inputKeys;
     private WorldManager _worldManager;
+    private WorldChunk[] m_chunks;
 
     public void Init(WorldManager worldManager)
     {
@@ -18,9 +21,12 @@ public class ParticleLogic : MonoBehaviour
             KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9
         };
         _worldManager = worldManager;
-        StartCoroutine(UpdateChunks());
+        m_chunks = _worldManager.GetAllChunks();
+        //StartCoroutine(UpdateChunks());
     }
 
+    private float m_timer;
+    private float m_timerMax = 0.01f;
     public void Update()
     {
         for (int i = 0; i < inputKeys.Length; i++)
@@ -36,60 +42,116 @@ public class ParticleLogic : MonoBehaviour
         {
             HandleOnMouseDown(Input.GetKey(KeyCode.LeftControl));
         }
-    }
-
-    private IEnumerator UpdateChunks()
-    {
-        while (true)
+        
+        m_timer += Time.deltaTime;
+        if(m_timer < m_timerMax)
+            return;
+        
+        m_timer = 0;
+        float sizeX = _worldManager.chunkSize.x;
+        float sizeY = _worldManager.chunkSize.y;
+        Profiler.BeginSample("Test");
+        for (int i = 0; i < m_chunks.Length; i++)
         {
-            float sizeX = _worldManager.chunkSize.x;
-            float sizeY = _worldManager.chunkSize.y;
-            foreach (WorldChunk chunk in _worldManager.GetAllChunks())
+            WorldChunk chunk = m_chunks[i];
+                
+            if (chunk == null)
             {
-                if (chunk.chunkActive == false)
+                Debug.Log($"{i} chunk is null");
+                continue;
+            }
+                
+            if (chunk.chunkActive == false)
+            {
+                continue;
+            }
+
+            //DynamicDebugText
+                
+            var particles = chunk.GetParticles();
+
+            for (int j = 0; j < particles.Length; j++)
+            {
+                var particle = particles[j];
+                if (particle.GetParticleType() == ParticleType.Air)
                 {
                     continue;
                 }
-
-                var particles = chunk.GetParticles();
-                // for (int i = 0; i < particles.Length; i++)
-                // {
-                //     int x = i % _worldManager.chunkSize.x;
-                //     int y = i / _worldManager.chunkSize.x;
-                //
-                //     if (particles[x, y].GetParticleType() == ParticleType.Air)
-                //     {
-                //         continue;
-                //     }
-                //
-                //     UpdateParticle(particles[x, y]);
-                // }
-                
-                for(int y = 0; y < sizeY; y++)
-                {
-                    for (int x = 0; x < sizeX; x++)
-                    {
-                        var particle = particles[x, y];
-                        if (particle.GetParticleType() == ParticleType.Air)
-                        {
-                            continue;
-                        }
                         
-                        UpdateParticle(particle);
-                    }
-                }
+                UpdateParticle(particle);
             }
-
-            foreach (WorldChunk chunk in _worldManager.GetAllChunks())
-            {
-                chunk.UpdateTexture();
-                chunk.chunkActive = chunk.isActiveNextStep;
-                chunk.isActiveNextStep = false;
-            }
-
-            yield return new WaitForSeconds(0.01f);
         }
+        Profiler.EndSample();
+
+        Profiler.BeginSample("Test Texture Update");
+        foreach (WorldChunk chunk in m_chunks)
+        {
+            if (chunk == null)
+                continue;
+                
+                
+            chunk.UpdateTexture();
+            chunk.chunkActive = chunk.isActiveNextStep;
+            chunk.isActiveNextStep = false;
+        }
+        Profiler.EndSample();
     }
+
+    // private IEnumerator UpdateChunks()
+    // {
+    //   
+    //     while (true)
+    //     {
+    //         float sizeX = _worldManager.chunkSize.x;
+    //         float sizeY = _worldManager.chunkSize.y;
+    //         for (int i = 0; i < m_chunks.Length; i++)
+    //         {
+    //             WorldChunk chunk = m_chunks[i];
+    //             
+    //             if (chunk == null)
+    //             {
+    //                 Debug.Log($"{i} chunk is null");
+    //                 continue;
+    //             }
+    //             
+    //             if (chunk.chunkActive == false)
+    //             {
+    //                 continue;
+    //             }
+    //
+    //             //DynamicDebugText
+    //             
+    //             var particles = chunk.GetParticles();
+    //             
+    //             for(int y = 0; y < sizeY; y++)
+    //             {
+    //                 for (int x = 0; x < sizeX; x++)
+    //                 {
+    //                     var particle = particles[x, y];
+    //                     if (particle.GetParticleType() == ParticleType.Air)
+    //                     {
+    //                         continue;
+    //                     }
+    //                     
+    //                     UpdateParticle(particle);
+    //                 }
+    //             }
+    //         }
+    //
+    //         foreach (WorldChunk chunk in _worldManager.GetAllChunks())
+    //         {
+    //             if (chunk == null)
+    //                 continue;
+    //             
+    //             
+    //             chunk.UpdateTexture();
+    //             chunk.chunkActive = chunk.isActiveNextStep;
+    //             chunk.isActiveNextStep = false;
+    //         }
+    //
+    //         yield return new WaitForSeconds(0.01f);
+    //     }
+    // }
 
     private void HandleOnMouseDown(bool doubleSize)
     {
@@ -125,7 +187,7 @@ public class ParticleLogic : MonoBehaviour
         WorldChunk chunk = _worldManager.GetChunkFromParticlePosition(worldPosition.x, worldPosition.y);
         int pixelPositionX = worldPosition.x % _worldManager.chunkSize.x;
         int pixelPositionY = worldPosition.y % _worldManager.chunkSize.y;
-
+        
         chunk.AddParticle(_selectedType, new Vector2Int(pixelPositionX, pixelPositionY));
     }
 
@@ -164,7 +226,9 @@ public class ParticleLogic : MonoBehaviour
             return;
         }
 
+        Profiler.BeginSample("Test Move");
         MoveParticle(particle);
+        Profiler.EndSample();
     }
 
     private void MoveParticle(Particle particle)
