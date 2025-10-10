@@ -1,4 +1,7 @@
+using System;
+using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 public class WorldChunk : MonoBehaviour
 {
@@ -10,31 +13,67 @@ public class WorldChunk : MonoBehaviour
     private Color[] m_chuckColour;         
     private WorldChunk[] m_neighbourChunks;
     private Vector2Int m_chunkSize;
+    private Camera m_mainCamera;
     
     //Public Variables
+    [SerializeField] private SpriteRenderer m_spriteRenderer;
     public Sprite sprite;
     public bool chunkActive;
     public bool isActiveNextStep;
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EnsureCapacity<T>(ref T[] arr, int len)
+    {
+        if (arr == null || arr.Length != len) arr = new T[len];
+    }
+    
     public void Init(Vector2Int chunkPosition,Vector2Int chunkSize)
     {
         m_chunkSize = chunkSize;
-        
-        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
-        sprite = spriteRenderer.sprite;
         m_chunkPosition = chunkPosition;
-        m_worldTexture = sprite.texture;
-        Debug.Log($"Particle Size :{chunkSize.x} , {chunkSize.y}");
-        m_particles = new Particle[chunkSize.x * chunkSize.y];
 
-        Camera mainCamera = Camera.main;
-        Bounds bounds = spriteRenderer.bounds;
+
+        if (m_spriteRenderer == null)
+        {
+            if(!TryGetComponent(out m_spriteRenderer))
+                return;
+        }
         
-        float screenAspect = (float)Screen.width / (float)Screen.height;
-        float cameraHeight = mainCamera.orthographicSize * 2;
+        m_spriteRenderer = GetComponent<SpriteRenderer>();
+        sprite = m_spriteRenderer.sprite;
+        m_worldTexture = sprite.texture;
+        
+        int len = chunkSize.x * chunkSize.y;
+        
+        m_particles = new Particle[len];
+        m_chuckColour = new Color[len];
+        
+        Array.Clear(m_particles, 0, len);
+
+        m_mainCamera = Camera.main;
+        if (m_mainCamera == null)
+        {
+            Debug.LogError("No Main Camera Found, Please set main Camera");
+            return;
+        }
+        
+        Bounds bounds = m_spriteRenderer.bounds;
+        Vector3 boundsMin = bounds.min;
+        Vector3 boundsSize = bounds.size;
+        
+        float screenAspect = (float)Screen.width / Screen.height;
+        float cameraHeight = m_mainCamera.orthographicSize * 2;
         Bounds cameraBounds =  new Bounds(
-            mainCamera.transform.position,
+            m_mainCamera.transform.position,
             new Vector3(cameraHeight * screenAspect, cameraHeight, 0));
+        
+        float invTexW = 1f / m_worldTexture.width;
+        float invTexH = 1f / m_worldTexture.height;
+
+        for (int i = 0; i < m_particles.Length; i++)
+        {
+            m_particles[i] = new Particle();
+        }
         
         for(int y = 0; y < chunkSize.y; y++)
         {
@@ -43,24 +82,28 @@ public class WorldChunk : MonoBehaviour
             {
                 int xIndex = x + m_chunkPosition.x * chunkSize.x;
                 int index = x + y * chunkSize.x;
-                m_particles[index] = new Particle();
-                m_particles[index].Init(new Vector2Int(xIndex, yIndex));
-                DrawPixel(new Vector2Int(x,y), Color.white);
                 
-                float xRatio = x / (float)m_worldTexture.width;
-                float yRatio = y / (float)m_worldTexture.height;
 
-                Vector3 worldPos = new Vector3(bounds.min.x + (bounds.size.y * xRatio),bounds.min.y + (bounds.size.y * yRatio),0);
-                if(worldPos.x < cameraBounds.min.x || worldPos.x > cameraBounds.max.x ||
-                   worldPos.y < cameraBounds.min.y || worldPos.y > cameraBounds.max.y)
+                Particle particle = m_particles[index];
+                particle.Init(new Vector2Int(xIndex, yIndex));
+                m_chuckColour[index] = new Color32(255, 255, 255, 255);
+                
+                //DrawPixel(new Vector2Int(x,y), Color.white);
+                
+                float xRatio = x * invTexW;
+                float yRatio = y * invTexH;
+                
+                float wx = boundsMin.x + (boundsSize.x * xRatio);
+                float wy = boundsMin.y + (boundsSize.y * yRatio);
+
+                if (wx < cameraBounds.min.x || wx > cameraBounds.max.x ||
+                    wy < cameraBounds.min.y || wy > cameraBounds.max.y)
                 {
-                    m_particles[index].AddParticle(ParticleType.Wood);
-                    DrawPixel(new Vector2Int(x, y), Color.red);
+                    particle.AddParticle(ParticleType.Wood);
+                    m_chuckColour[index] = new Color32(255, 0, 0, 255);
                 }
             } 
         }
-
-        m_chuckColour = new Color[m_particles.Length];
     }
 
     public Particle GetParticleAtIndex(int x, int y)
@@ -99,18 +142,15 @@ public class WorldChunk : MonoBehaviour
         return m_particles[index];
     }
 
-    public void DrawPixel(Vector2Int pixelPosition, Color color)
+    public void DrawPixel(Color[] color)
     {
-        m_worldTexture.SetPixel(pixelPosition.x, pixelPosition.y, color);
+        m_worldTexture.SetPixels(color);
         m_worldTexture.Apply();
     }
 
     public void UpdateTexture()
     {
-        var worldManager = WorldManager.instance;
-        int width = worldManager.chunkSize.x;
-        int height = worldManager.chunkSize.y;
-        
+
         for (int i = 0; i < m_particles.Length; i++)
         {
             Particle particle = m_particles[i];
@@ -128,14 +168,18 @@ public class WorldChunk : MonoBehaviour
                 m_chuckColour[i]= Color.white;
             }
 
+
             if (particle.HasUpdated())
             {
                 particle.SetUpdated(false);
             }
         }
+
         
+
         m_worldTexture.SetPixels(m_chuckColour);
-        m_worldTexture.Apply();
+        if (m_worldTexture != null && m_worldTexture.isReadable)
+            m_worldTexture.Apply(false);
     }
 
     public Particle[] GetParticles()

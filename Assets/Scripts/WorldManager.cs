@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 
 /// <summary>
@@ -27,38 +29,33 @@ public class WorldManager : MonoBehaviour
 
     private void Start()
     {
-        GenerateEmptyWorld();
+        StartCoroutine(GenerateEmptyWorld());
     }
 
-    private void GenerateEmptyWorld()
+    private IEnumerator GenerateEmptyWorld()
     {
         if (Camera.main == null)
         {
             Debug.LogError("No Main Camera Found, Please set main Camera");
-            return;
+            yield break;
         }
 
         m_chunkWidth = worldSize.x / chunkSize.x;
         m_chunkHeight = worldSize.y / chunkSize.y;
         int totalChunks = m_chunkWidth * m_chunkHeight;
-
-        Debug.Log($"Chunk Size : {m_chunkWidth}, {m_chunkHeight}");
         
         m_chunks = new WorldChunk[totalChunks];
 
         GameObject world = new GameObject("World");
 
-        float chunkSprintSize = chunkSize.x / pixelPerUnit; 
+        float chunkSprintSize = chunkSize.x / pixelPerUnit;
+        Camera camera = Camera.main;
         Vector3 startPosition = new Vector3()
         {
-           x = Camera.main.transform.position.x - (m_chunkWidth * 0.5f) - (chunkSprintSize * 0.5f),
-           y = Camera.main.transform.position.y - (m_chunkHeight * 0.5f) - (chunkSprintSize) 
+           x = camera.transform.position.x - (m_chunkWidth * 0.5f) - (chunkSprintSize * 0.5f),
+           y = camera.transform.position.y - (m_chunkHeight * 0.5f) - (chunkSprintSize) 
         };
         
-        ChunkShiftX = (int)Mathf.Log(m_chunkWidth, 2);
-        ChunkShiftY = (int)Mathf.Log(m_chunkHeight, 2);
-        ChunkMaskX  = m_chunkWidth - 1;
-        ChunkMaskY  = m_chunkHeight - 1;
         
         for (int y = 0; y < m_chunkHeight; y++)
         {
@@ -91,12 +88,15 @@ public class WorldManager : MonoBehaviour
                 int positionOffsetX = (chunkSize.x  / pixelPerUnit) * x;
                 int positionOffsetY = (chunkSize.y  / pixelPerUnit) * y;
                 worldObj.transform.position += new Vector3(positionOffsetX, positionOffsetY);
-                
+                Profiler.BeginSample("Test");
                 worldChunk.Init(new Vector2Int(x, y), chunkSize);
+                Profiler.EndSample();
                 worldChunk.transform.SetParent(world.transform);
                 m_chunks[index] = worldChunk;
             }
         }
+        yield return null;
+        
 
         ParticleLogic logic = world.AddComponent<ParticleLogic>();
         logic.Init(this);
@@ -120,8 +120,8 @@ public class WorldManager : MonoBehaviour
 
     public WorldChunk GetChunkFromParticlePosition(int x, int y)
     {
-        int chunkPositionX = x / WorldManager.instance.chunkSize.x;
-        int chunkPositionY = y / WorldManager.instance.chunkSize.y;
+        int chunkPositionX = x / chunkSize.x;
+        int chunkPositionY = y / chunkSize.y;
 
         return GetChunk(chunkPositionX, chunkPositionY);
     }
@@ -130,24 +130,21 @@ public class WorldManager : MonoBehaviour
     {
         WorldChunk chunk = GetChunkFromParticlePosition(x, y);
         
-        int pixelPositionX = x % WorldManager.instance.chunkSize.x;
-        int pixelPositionY = y % WorldManager.instance.chunkSize.y;
-        int index = pixelPositionX + pixelPositionY * WorldManager.instance.chunkSize.x;
+        int pixelPositionX = x % chunkSize.x;
+        int pixelPositionY = y % chunkSize.y;
+        int index = pixelPositionX + pixelPositionY * chunkSize.x;
         
         return chunk.GetParticleAtIndex(index);
     }
 
-    
-    public static int ChunkShiftX, ChunkShiftY;
-    public static int ChunkMaskX,  ChunkMaskY;
     public bool ContainsParticle(int x, int y)
     {
-        WorldChunk chunk = WorldManager.instance.GetChunkFromParticlePosition(x, y);
+        WorldChunk chunk = GetChunkFromParticlePosition(x, y);
         
-        int pixelPositionX = x % WorldManager.instance.chunkSize.x;
-        int pixelPositionY = y % WorldManager.instance.chunkSize.y;
+        int pixelPositionX = x % chunkSize.x;
+        int pixelPositionY = y % chunkSize.y;
         
-        int index = pixelPositionX + pixelPositionY * WorldManager.instance.chunkSize.x;
+        int index = pixelPositionX + pixelPositionY * chunkSize.x;
             
         return chunk.ContainsParticle(index);
     }

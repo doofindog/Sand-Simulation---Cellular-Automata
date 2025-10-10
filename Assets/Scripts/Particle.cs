@@ -6,6 +6,8 @@ public class Particle
     [SerializeField] private Vector2Int m_position;
     [SerializeField] private ParticleType m_type;
     [SerializeField] private bool m_updated;
+    
+    public Vector2Int Position => m_position;
 
     public void Init(Vector2Int position,ParticleType type = ParticleType.Air)
     {
@@ -26,11 +28,6 @@ public class Particle
     public ParticleMovement[] GetMovements()
     {
         return GetParticleData().movements;
-    }
-
-    public Vector2Int GetPosition()
-    {
-        return m_position;
     }
     
 

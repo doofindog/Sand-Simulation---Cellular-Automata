@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DrawXXL", "DrawXXL.csproj", "{2d53bdae-044d-4493-32b6-5b870d7d549c}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SingularityGroup.HotReload.Runtime", "SingularityGroup.HotReload.Runtime.csproj", "{4947777a-50b1-2414-000a-6a8472be3c69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DrawXXL", "DrawXXL.csproj", "{2d53bdae-044d-4493-32b6-5b870d7d549c}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DrawXXL-Editor", "DrawXXL-Editor.csproj", "{d00a42c9-70a5-181d-5ffe-470fdc397249}"
 EndProject
@@ -20,10 +20,10 @@ Global
 		Debug|Any CPU = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2d53bdae-044d-4493-32b6-5b870d7d549c}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2d53bdae-044d-4493-32b6-5b870d7d549c}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4947777a-50b1-2414-000a-6a8472be3c69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4947777a-50b1-2414-000a-6a8472be3c69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2d53bdae-044d-4493-32b6-5b870d7d549c}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2d53bdae-044d-4493-32b6-5b870d7d549c}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{d00a42c9-70a5-181d-5ffe-470fdc397249}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{d00a42c9-70a5-181d-5ffe-470fdc397249}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{d3156641-ab13-2022-e810-fb9a42bac90d}.Debug|Any CPU.ActiveCfg = Debug|Any CPU

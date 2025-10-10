@@ -14,7 +14,7 @@ namespace DrawXXL
         void Update()
         {
             DrawCharts.premadeChart0.AddValue(transform.position.y, "Position");
-            DrawCharts.premadeChart0.AddValue(GetComponent<Rigidbody>().velocity.y, "Velocity");
+            DrawCharts.premadeChart0.AddValue(GetComponent<Rigidbody>().linearVelocity.y, "Velocity");
             DrawCharts.premadeChart0.AddValue(Time.deltaTime, "Delta Time");
 
             DrawCharts.premadeChart0.Draw();
