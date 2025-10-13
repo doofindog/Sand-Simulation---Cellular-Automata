@@ -87,7 +87,7 @@ public class WorldManager : MonoBehaviour
                 int positionOffsetX = (chunkSize.x  / pixelPerUnit) * x;
                 int positionOffsetY = (chunkSize.y  / pixelPerUnit) * y;
                 worldObj.transform.position += new Vector3(positionOffsetX, positionOffsetY);
-                worldChunk.Init(new Vector2Int(x, y), chunkSize);
+                worldChunk.Init(index, new Vector2Int(x, y), chunkSize);
                 worldChunk.transform.SetParent(world.transform);
                 m_chunks[index] = worldChunk;
             }
@@ -108,6 +108,14 @@ public class WorldManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    public WorldChunk GetChunk(int index)
+    {
+        if (index < 0 || index >= m_chunks.Length)
+            return null;
+
+        return m_chunks[index];
     }
 
     public WorldChunk[] GetAllChunks()

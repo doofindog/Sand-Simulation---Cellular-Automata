@@ -1,15 +1,16 @@
 using System;
 using System.Runtime.CompilerServices;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 public class WorldChunk : MonoBehaviour
 {
     //Private Variables
+    private int m_chunkId;
     private Vector2Int m_chunkPosition;
     private Color m_defaultColor;
     private Texture2D m_worldTexture;
-    [SerializeField]private Particle[] m_particles;
+    [SerializeField] private Particle[] m_particles;
+    private Particle[] m_modifiedParticles;
     private Color[] m_chuckColour;         
     private WorldChunk[] m_neighbourChunks;
     private Vector2Int m_chunkSize;
@@ -19,16 +20,14 @@ public class WorldChunk : MonoBehaviour
     [SerializeField] private SpriteRenderer m_spriteRenderer;
     public Sprite sprite;
     public bool chunkActive;
-    public bool isActiveNextStep;
+    public bool isActiveNextFrame;
     
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void EnsureCapacity<T>(ref T[] arr, int len)
-    {
-        if (arr == null || arr.Length != len) arr = new T[len];
-    }
+    public int ChunkId => m_chunkId;
+    public Vector2Int ChunkPosition => m_chunkPosition;
     
-    public void Init(Vector2Int chunkPosition,Vector2Int chunkSize)
+    public void Init(int chunkIndex, Vector2Int chunkPosition,Vector2Int chunkSize)
     {
+        m_chunkId = chunkIndex;
         m_chunkSize = chunkSize;
         m_chunkPosition = chunkPosition;
 
@@ -53,7 +52,6 @@ public class WorldChunk : MonoBehaviour
         m_mainCamera = Camera.main;
         if (m_mainCamera == null)
         {
-            Debug.LogError("No Main Camera Found, Please set main Camera");
             return;
         }
         
@@ -85,6 +83,8 @@ public class WorldChunk : MonoBehaviour
                 
 
                 Particle particle = m_particles[index];
+                particle.index = index;
+                particle.chunkId = m_chunkId;
                 particle.positionX = xIndex;
                 particle.positionY = yIndex;
                 particle.localPositionX = x;
@@ -107,13 +107,15 @@ public class WorldChunk : MonoBehaviour
                     particle.colour = new Color32(255, 0, 0, 255);
                     m_chuckColour[index] = particle.colour;
                 }
+                
+                m_particles[index] = particle;
             } 
         }
         
         UpdateTexture();
     }
 
-    public Particle GetParticleAtIndex(int x, int y)
+    private Particle GetParticleAtIndex(int x, int y)
     {
         int index = x + y * m_chunkSize.x; 
         return m_particles[index];
@@ -136,16 +138,24 @@ public class WorldChunk : MonoBehaviour
         return particle.type != ParticleType.Air;
     }
 
-    public void AddParticle(ParticleType type, Vector2Int particlePos)
+    public void AddParticle(ParticleType type, Vector2Int particlePos, int id = 0)
     {
-        if (ContainsParticle(particlePos.x, particlePos.y))
-        {
-            return;
-        }
-     
         int index = particlePos.x + particlePos.y * m_chunkSize.x;
-        m_particles[index].type = type;
-        chunkActive = true;
+        Particle particle = m_particles[index];
+        particle.type = type;
+        particle.updated = 1;
+        particle.id = id;
+        m_particles[index] = particle;
+    }
+    
+    
+    public void AddParticle(ParticleType type, int index, int id = 0)
+    {
+        Particle particle = m_particles[index];
+        particle.type = type;
+        particle.updated = 1;
+        particle.id = id;
+        m_particles[index] = particle;
     }
 
     public void DrawPixel(Color[] color)
@@ -166,18 +176,18 @@ public class WorldChunk : MonoBehaviour
             }
             else
             {
-                m_chuckColour[i]= Color.white;
+                m_chuckColour[i] = Color.white;
             }
 
 
             if (m_particles[i].updated == 1)
             {
-                m_particles[i].updated = 0;
+                Particle particle = m_particles[i];
+                particle.updated = 0;
+                m_particles[i] = particle;
             }
         }
-
         
-
         m_worldTexture.SetPixels(m_chuckColour);
         if (m_worldTexture != null && m_worldTexture.isReadable)
             m_worldTexture.Apply(false);

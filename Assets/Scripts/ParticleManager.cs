@@ -26,14 +26,12 @@ using UnityEngine.Serialization;
                 var data = m_particleDatas[i];
                 if (data == null)
                 {
-                    Debug.LogError($"Particle Data at index {i} is null");
                     continue;
                 }
                 
                 int idx = (int)data.particleType;
                 if (s_particleDataLookUp[idx] != null)
                 {
-                    Debug.LogError($"Particle Data at index {i} is not null");
                     continue;
                 }
                 
