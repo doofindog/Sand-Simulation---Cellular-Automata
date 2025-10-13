@@ -182,7 +182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pixelPerUnit: 16
-  worldSize: {x: 320, y: 320}
+  worldSize: {x: 32, y: 32}
   chunkSize: {x: 32, y: 32}
   m_chunks: []
 --- !u!4 &363839208
@@ -261,7 +261,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 32
+  orthographic size: 1
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2

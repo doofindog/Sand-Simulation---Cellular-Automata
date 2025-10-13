@@ -56,7 +56,6 @@ public class WorldManager : MonoBehaviour
            y = camera.transform.position.y - (m_chunkHeight * 0.5f) - (chunkSprintSize) 
         };
         
-        
         for (int y = 0; y < m_chunkHeight; y++)
         {
             for (int x = 0; x < m_chunkWidth; x++)
@@ -88,9 +87,7 @@ public class WorldManager : MonoBehaviour
                 int positionOffsetX = (chunkSize.x  / pixelPerUnit) * x;
                 int positionOffsetY = (chunkSize.y  / pixelPerUnit) * y;
                 worldObj.transform.position += new Vector3(positionOffsetX, positionOffsetY);
-                Profiler.BeginSample("Test");
                 worldChunk.Init(new Vector2Int(x, y), chunkSize);
-                Profiler.EndSample();
                 worldChunk.transform.SetParent(world.transform);
                 m_chunks[index] = worldChunk;
             }

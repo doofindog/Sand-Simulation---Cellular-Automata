@@ -85,10 +85,14 @@ public class WorldChunk : MonoBehaviour
                 
 
                 Particle particle = m_particles[index];
-                particle.Init(new Vector2Int(xIndex, yIndex));
-                m_chuckColour[index] = new Color32(255, 255, 255, 255);
+                particle.positionX = xIndex;
+                particle.positionY = yIndex;
+                particle.localPositionX = x;
+                particle.localPositionY = y;
+                particle.type = ParticleType.Air;
+                particle.colour = new Color32(255, 255, 255, 255);
                 
-                //DrawPixel(new Vector2Int(x,y), Color.white);
+                m_chuckColour[index] = particle.colour;
                 
                 float xRatio = x * invTexW;
                 float yRatio = y * invTexH;
@@ -99,11 +103,14 @@ public class WorldChunk : MonoBehaviour
                 if (wx < cameraBounds.min.x || wx > cameraBounds.max.x ||
                     wy < cameraBounds.min.y || wy > cameraBounds.max.y)
                 {
-                    particle.AddParticle(ParticleType.Wood);
-                    m_chuckColour[index] = new Color32(255, 0, 0, 255);
+                    particle.type = ParticleType.Air;
+                    particle.colour = new Color32(255, 0, 0, 255);
+                    m_chuckColour[index] = particle.colour;
                 }
             } 
         }
+        
+        UpdateTexture();
     }
 
     public Particle GetParticleAtIndex(int x, int y)
@@ -120,26 +127,25 @@ public class WorldChunk : MonoBehaviour
     public bool ContainsParticle(int x, int y)
     {
         Particle particle = GetParticleAtIndex(x, y);
-        return particle != null && particle.GetParticleType() != ParticleType.Air;
+        return particle.type != ParticleType.Air;
     }
     
     public bool ContainsParticle(int index)
     {
         Particle particle = GetParticleAtIndex(index);
-        return particle != null && particle.GetParticleType() != ParticleType.Air;
+        return particle.type != ParticleType.Air;
     }
 
-    public Particle AddParticle(ParticleType type, Vector2Int particlePos)
+    public void AddParticle(ParticleType type, Vector2Int particlePos)
     {
         if (ContainsParticle(particlePos.x, particlePos.y))
         {
-            return null;
+            return;
         }
      
         int index = particlePos.x + particlePos.y * m_chunkSize.x;
-        m_particles[index].AddParticle(type);
+        m_particles[index].type = type;
         chunkActive = true;
-        return m_particles[index];
     }
 
     public void DrawPixel(Color[] color)
@@ -150,18 +156,13 @@ public class WorldChunk : MonoBehaviour
 
     public void UpdateTexture()
     {
-
         for (int i = 0; i < m_particles.Length; i++)
         {
-            Particle particle = m_particles[i];
-            if (particle == null)
+
+            ParticleData particleData = ParticleManager.GetParticleData(m_particles[i].type);
+            if (m_particles[i].type != ParticleType.Air)
             {
-                Debug.Log("Particle is null at : " + i);
-                continue;
-            }
-            if (particle.GetParticleType() != ParticleType.Air)
-            {
-                m_chuckColour[i] = particle.GetParticleData().colour;
+                m_chuckColour[i] = particleData.colour;
             }
             else
             {
@@ -169,9 +170,9 @@ public class WorldChunk : MonoBehaviour
             }
 
 
-            if (particle.HasUpdated())
+            if (m_particles[i].updated == 1)
             {
-                particle.SetUpdated(false);
+                m_particles[i].updated = 0;
             }
         }
 
@@ -185,5 +186,13 @@ public class WorldChunk : MonoBehaviour
     public Particle[] GetParticles()
     {
         return m_particles;
+    }
+
+    public void SetParticleUpdated(int particlePositionX, int particlePositionY, byte value)
+    {
+        int index = particlePositionX + particlePositionY * m_chunkSize.x;
+        Particle particle = m_particles[index];
+        particle.updated = value;
+        m_particles[index] = particle;
     }
 }

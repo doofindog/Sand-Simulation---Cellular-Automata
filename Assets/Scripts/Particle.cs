@@ -1,61 +1,80 @@
+using System;
 using UnityEngine;
 
 [System.Serializable]
 public class Particle
 {
-    [SerializeField] private Vector2Int m_position;
-    [SerializeField] private ParticleType m_type;
-    [SerializeField] private bool m_updated;
+    public int positionX;
+    public int positionY;
+
+    public int localPositionX;
+    public int localPositionY;
     
-    public Vector2Int Position => m_position;
-
-    public void Init(Vector2Int position,ParticleType type = ParticleType.Air)
-    {
-        m_position = position;
-        m_type = type;
-    }
-
-    public void AddParticle(ParticleType type)
-    {
-        m_type = type;
-    }
-
-    public void RemoveParticleData()
-    {
-        m_type = ParticleType.Air;
-    }
-
-    public ParticleMovement[] GetMovements()
-    {
-        return GetParticleData().movements;
-    }
+    public ParticleType type;
+    public byte updated;
+    public Color32 colour;
     
+    public Vector2Int Position => new Vector2Int(positionX, positionY);
+    public ParticleType ParticleType => type;
+    public bool Updated => updated == 1;
 
-    public ParticleType GetParticleType()
+    public Particle DefaultParticle()
     {
-        return m_type;
+        return new Particle()
+        {
+            positionX = positionX,
+            positionY = positionY,
+            
+            localPositionX = localPositionX,
+            localPositionY = localPositionY,
+            
+            type = ParticleType.Air,
+            updated = 0,
+            colour = new Color32(255,255,255,255)
+        };
     }
 
-    public ParticleData GetParticleData()
-    {
-        return ParticleManager.GetParticleData(m_type);
-    }
-
-    public bool HasUpdated()
-    {
-        return m_updated;
-    }
-
-    public void SetUpdated(bool value)
-    {
-        m_updated = value;
-    }
-
-    public WorldChunk GetChunk()
-    {
-        int chunkPositionX = m_position.x / WorldManager.instance.chunkSize.x;
-        int chunkPositionY = m_position.y / WorldManager.instance.chunkSize.y;
-
-        return WorldManager.instance.GetChunk(chunkPositionX, chunkPositionY);
-    }
+    // public void Init(Vector2Int position,ParticleType type = ParticleType.Air)
+    // {
+    //     positionX = position.x;
+    //     positionY = position.y;
+    //     
+    //     this.type = type;
+    // }
+    //
+    // public void AddParticle(ParticleType type)
+    // {
+    //     this.type = type;
+    // }
+    //
+    // public void RemoveParticleData()
+    // {
+    //     type = ParticleType.Air;
+    // }
+    //
+    // public ParticleMovement[] GetMovements()
+    // {
+    //     return GetParticleData().movements;
+    // }
+    //
+    //
+    // public ParticleType GetParticleType()
+    // {
+    //     return type;
+    // }
+    //
+    // public ParticleData GetParticleData()
+    // {
+    //     return ParticleManager.GetParticleData(type);
+    // }
+    //
+    // public bool HasUpdated()
+    // {
+    //     return updated;
+    // }
+    //
+    // public void SetUpdated(bool value)
+    // {
+    //     updated = value;
+    // }
 }
