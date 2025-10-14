@@ -47,14 +47,8 @@ public class WorldManager : MonoBehaviour
         m_chunks = new WorldChunk[totalChunks];
 
         GameObject world = new GameObject("World");
-
-        float chunkSprintSize = chunkSize.x / pixelPerUnit;
-        Camera camera = Camera.main;
-        Vector3 startPosition = new Vector3()
-        {
-           x = camera.transform.position.x - (m_chunkWidth * 0.5f) - (chunkSprintSize * 0.5f),
-           y = camera.transform.position.y - (m_chunkHeight * 0.5f) - (chunkSprintSize) 
-        };
+        
+        Vector3 startPosition = Vector3.zero;
         
         for (int y = 0; y < m_chunkHeight; y++)
         {
@@ -62,7 +56,7 @@ public class WorldManager : MonoBehaviour
             {
                 int index = x + y * m_chunkWidth;
                 
-                GameObject worldObj = new GameObject($"WorldChunk({x},{y})")
+                GameObject chunkObj = new GameObject($"WorldChunk({x},{y})")
                 {
                     transform =
                     {
@@ -75,18 +69,18 @@ public class WorldManager : MonoBehaviour
                     filterMode = FilterMode.Point,
                 };
                 
-                SpriteRenderer spriteRenderer = worldObj.AddComponent<SpriteRenderer>();
+                SpriteRenderer spriteRenderer = chunkObj.AddComponent<SpriteRenderer>();
                 spriteRenderer.sprite = Sprite.Create(
                     worldTexture,
                     new Rect(0, 0, chunkSize.x, chunkSize.y),
                     Vector2.one * 0.5f,
                     pixelPerUnit);
                 
-                WorldChunk worldChunk = worldObj.AddComponent<WorldChunk>();
+                WorldChunk worldChunk = chunkObj.AddComponent<WorldChunk>();
                 
                 int positionOffsetX = (chunkSize.x  / pixelPerUnit) * x;
                 int positionOffsetY = (chunkSize.y  / pixelPerUnit) * y;
-                worldObj.transform.position += new Vector3(positionOffsetX, positionOffsetY);
+                chunkObj.transform.position += new Vector3(positionOffsetX, positionOffsetY);
                 worldChunk.Init(index, new Vector2Int(x, y), chunkSize);
                 worldChunk.transform.SetParent(world.transform);
                 m_chunks[index] = worldChunk;
@@ -97,6 +91,12 @@ public class WorldManager : MonoBehaviour
 
         ParticleLogic logic = world.AddComponent<ParticleLogic>();
         logic.Init(this);
+        
+        Camera mainCamera = Camera.main;
+        int size = worldSize.y / chunkSize.x;
+        mainCamera.orthographicSize = size;
+        mainCamera.transform.position = new Vector3(size - 1, size - 1, -10); 
+        
     }
 
     public WorldChunk GetChunk(int x, int y)

@@ -18,9 +18,6 @@ MonoBehaviour:
   - moveDir: 4
     distance: 1
     chance: 1
-  - moveDir: 8
-    distance: 1
-    chance: 1
   - moveDir: 3
     distance: 1
     chance: 1

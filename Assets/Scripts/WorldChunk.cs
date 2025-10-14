@@ -9,7 +9,8 @@ public class WorldChunk : MonoBehaviour
     private Vector2Int m_chunkPosition;
     private Color m_defaultColor;
     private Texture2D m_worldTexture;
-    [SerializeField] private Particle[] m_particles;
+    [SerializeField] private Particle[] m_readParticle;
+    [SerializeField] private Particle[] m_writeParticle;
     private Particle[] m_modifiedParticles;
     private Color[] m_chuckColour;         
     private WorldChunk[] m_neighbourChunks;
@@ -44,10 +45,10 @@ public class WorldChunk : MonoBehaviour
         
         int len = chunkSize.x * chunkSize.y;
         
-        m_particles = new Particle[len];
+        m_readParticle = new Particle[len];
         m_chuckColour = new Color[len];
         
-        Array.Clear(m_particles, 0, len);
+        Array.Clear(m_readParticle, 0, len);
 
         m_mainCamera = Camera.main;
         if (m_mainCamera == null)
@@ -68,9 +69,9 @@ public class WorldChunk : MonoBehaviour
         float invTexW = 1f / m_worldTexture.width;
         float invTexH = 1f / m_worldTexture.height;
 
-        for (int i = 0; i < m_particles.Length; i++)
+        for (int i = 0; i < m_readParticle.Length; i++)
         {
-            m_particles[i] = new Particle();
+            m_readParticle[i] = new Particle();
         }
         
         for(int y = 0; y < chunkSize.y; y++)
@@ -82,7 +83,7 @@ public class WorldChunk : MonoBehaviour
                 int index = x + y * chunkSize.x;
                 
 
-                Particle particle = m_particles[index];
+                Particle particle = m_readParticle[index];
                 particle.index = index;
                 particle.chunkId = m_chunkId;
                 particle.positionX = xIndex;
@@ -108,7 +109,7 @@ public class WorldChunk : MonoBehaviour
                     m_chuckColour[index] = particle.colour;
                 }
                 
-                m_particles[index] = particle;
+                m_readParticle[index] = particle;
             } 
         }
         
@@ -118,12 +119,12 @@ public class WorldChunk : MonoBehaviour
     private Particle GetParticleAtIndex(int x, int y)
     {
         int index = x + y * m_chunkSize.x; 
-        return m_particles[index];
+        return m_readParticle[index];
     }
     
     public Particle GetParticleAtIndex(int index)
     {
-        return m_particles[index];
+        return m_readParticle[index];
     }
 
     public bool ContainsParticle(int x, int y)
@@ -141,21 +142,21 @@ public class WorldChunk : MonoBehaviour
     public void AddParticle(ParticleType type, Vector2Int particlePos, int id = 0)
     {
         int index = particlePos.x + particlePos.y * m_chunkSize.x;
-        Particle particle = m_particles[index];
+        Particle particle = m_readParticle[index];
         particle.type = type;
         particle.updated = 1;
         particle.id = id;
-        m_particles[index] = particle;
+        m_readParticle[index] = particle;
     }
     
     
     public void AddParticle(ParticleType type, int index, int id = 0)
     {
-        Particle particle = m_particles[index];
+        Particle particle = m_readParticle[index];
         particle.type = type;
         particle.updated = 1;
         particle.id = id;
-        m_particles[index] = particle;
+        m_readParticle[index] = particle;
     }
 
     public void DrawPixel(Color[] color)
@@ -166,11 +167,10 @@ public class WorldChunk : MonoBehaviour
 
     public void UpdateTexture()
     {
-        for (int i = 0; i < m_particles.Length; i++)
+        for (int i = 0; i < m_readParticle.Length; i++)
         {
-
-            ParticleData particleData = ParticleManager.GetParticleData(m_particles[i].type);
-            if (m_particles[i].type != ParticleType.Air)
+            ParticleData particleData = ParticleManager.GetParticleData(m_readParticle[i].type);
+            if (m_readParticle[i].type != ParticleType.Air)
             {
                 m_chuckColour[i] = particleData.colour;
             }
@@ -180,11 +180,11 @@ public class WorldChunk : MonoBehaviour
             }
 
 
-            if (m_particles[i].updated == 1)
+            if (m_readParticle[i].updated == 1)
             {
-                Particle particle = m_particles[i];
+                Particle particle = m_readParticle[i];
                 particle.updated = 0;
-                m_particles[i] = particle;
+                m_readParticle[i] = particle;
             }
         }
         
@@ -195,14 +195,14 @@ public class WorldChunk : MonoBehaviour
 
     public Particle[] GetParticles()
     {
-        return m_particles;
+        return m_writeParticle;
     }
 
     public void SetParticleUpdated(int particlePositionX, int particlePositionY, byte value)
     {
         int index = particlePositionX + particlePositionY * m_chunkSize.x;
-        Particle particle = m_particles[index];
+        Particle particle = m_readParticle[index];
         particle.updated = value;
-        m_particles[index] = particle;
+        m_readParticle[index] = particle;
     }
 }

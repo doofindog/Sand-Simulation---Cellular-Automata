@@ -21,7 +21,9 @@ public class ParticleLogic : MonoBehaviour
     private List<WorkData> m_nextWork;
     private Camera m_camera;
     private float m_timer;
-    private float m_timerMax = 0.01f;
+    [SerializeField] private float m_updateTime = 0.01f;
+    [SerializeField] private int m_iterationFrame = 1;
+    private bool m_flip;
 
     [Header("=== Debugging ===")] 
     [SerializeField] private int m_chunkIndex;
@@ -69,10 +71,8 @@ public class ParticleLogic : MonoBehaviour
         }
 
         m_timer += Time.deltaTime;
-        if (m_timer < m_timerMax)
+        if (m_timer < m_updateTime)
             return;
-
-        // TODO : Remove Comment. Commenting just to Test right now
         
         m_timer = 0;
         for (int i = 0; i < m_chunks.Length; i++)
@@ -82,7 +82,6 @@ public class ParticleLogic : MonoBehaviour
                 continue;
         
             var particles = chunk.GetParticles();
-        
             for (int j = 0; j < particles.Length; j++)
             {
                 var particle = particles[j];
@@ -124,16 +123,20 @@ public class ParticleLogic : MonoBehaviour
         }
         else
         {
-            int xSize = 4;
-            int ySize = 4;
-            for (int x = -xSize / 2; x <= xSize; x++)
+            int radius = 4; // brush radius in pixels (change as you like)
+
+            Vector2Int center = GetWorldPos(mouseWorldPosition);
+
+            for (int dx = -radius; dx <= radius; dx++)
             {
-                for (int y = -ySize / 2; y <= ySize; y++)
+                for (int dy = -radius; dy <= radius; dy++)
                 {
-                    Vector2Int pixelPos = GetWorldPos(mouseWorldPosition) + new Vector2Int(x, y);
-                    if (CheckPositionBounds(pixelPos.x, pixelPos.y))
+                    // inside the circle if dx^2 + dy^2 <= r^2
+                    if (dx * dx + dy * dy <= radius * radius)
                     {
-                        AddParticle(pixelPos, ParticleType.Sand);
+                        Vector2Int p = new Vector2Int(center.x + dx, center.y + dy);
+                        if (CheckPositionBounds(p.x, p.y))
+                            AddParticle(p, ParticleType.Sand);
                     }
                 }
             }
@@ -317,8 +320,6 @@ public class ParticleLogic : MonoBehaviour
 
         if (particleMoved)
         {
-
-
             SetUpdated(particle, 1);
         }
         return particleMoved;
@@ -425,6 +426,7 @@ public class ParticleLogic : MonoBehaviour
         currentChunk.isActiveNextFrame = true;
         if (neighbourChunk != currentChunk)
         {
+            SetUpdated(neighbourParticle, 1);
             neighbourChunk.isActiveNextFrame = true;
         }
         
