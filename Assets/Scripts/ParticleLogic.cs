@@ -17,8 +17,6 @@ public class ParticleLogic : MonoBehaviour
     private KeyCode[] inputKeys;
     private WorldManager _worldManager;
     private WorldChunk[] m_chunks;
-    private List<WorkData> m_currentWork;
-    private List<WorkData> m_nextWork;
     private Camera m_camera;
     private float m_timer;
     [SerializeField] private float m_updateTime = 0.01f;
@@ -30,9 +28,6 @@ public class ParticleLogic : MonoBehaviour
 
     public void Init(WorldManager worldManager)
     {
-        m_currentWork = new List<WorkData>();
-        m_nextWork = new List<WorkData>();
-        
         inputKeys = new[]
         {
             KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5,
@@ -63,8 +58,6 @@ public class ParticleLogic : MonoBehaviour
             m_chunkIndex = debugChunk.ChunkId;
         }
         
-        
-
         if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(1))
         {
             HandleOnMouseDown(Input.GetKey(KeyCode.LeftControl));
@@ -81,6 +74,8 @@ public class ParticleLogic : MonoBehaviour
             if (chunk == null || !chunk.chunkActive)
                 continue;
         
+            chunk.ClearWrite();
+            
             var particles = chunk.GetParticles();
             for (int j = 0; j < particles.Length; j++)
             {
@@ -101,6 +96,7 @@ public class ParticleLogic : MonoBehaviour
             if (chunk == null || !chunk.isActiveNextFrame)
                 continue;
             
+            chunk.SwapReadWrite();
             chunk.UpdateTexture();
 
             chunk.chunkActive = chunk.isActiveNextFrame;
@@ -117,7 +113,7 @@ public class ParticleLogic : MonoBehaviour
             Vector2Int pixelPos = GetWorldPos(mouseWorldPosition);
             if (CheckPositionBounds(pixelPos.x, pixelPos.y))
             {
-                AddParticle(pixelPos, ParticleType.Sand, m_id);
+                AddParticle(pixelPos, _selectedType);
                 m_id++;
             }
         }
@@ -136,22 +132,21 @@ public class ParticleLogic : MonoBehaviour
                     {
                         Vector2Int p = new Vector2Int(center.x + dx, center.y + dy);
                         if (CheckPositionBounds(p.x, p.y))
-                            AddParticle(p, ParticleType.Sand);
+                            AddParticle(p, _selectedType);
                     }
                 }
             }
         }
     }
 
-    private void AddParticle(Vector2Int worldPosition, ParticleType type, int id = 0)
+    private void AddParticle(Vector2Int worldPosition, ParticleType type)
     {
         WorldChunk chunk = _worldManager.GetChunkFromParticlePosition(worldPosition.x, worldPosition.y);
         int pixelPositionX = worldPosition.x % _worldManager.chunkSize.x;
         int pixelPositionY = worldPosition.y % _worldManager.chunkSize.y;
-
-        chunk.AddParticle(_selectedType, new Vector2Int(pixelPositionX, pixelPositionY), id);
-
-        chunk.chunkActive = true;
+        int index = pixelPositionX + pixelPositionY * _worldManager.chunkSize.x;
+        
+        chunk.AddParticle(index, type);
     }
 
     private Vector2Int GetWorldPos(Vector2 pos)
@@ -258,7 +253,7 @@ public class ParticleLogic : MonoBehaviour
                 int x = particle.localPositionX;
                 int y = particle.localPositionY;
                 
-                // If particle is on the world edge (any side)
+                // === If particle has been updated in the border. Activate its neighbor chunk ===
                 if (x == 0 || y == 0 || x == _worldManager.worldSize.x - 1 || y == _worldManager.worldSize.y - 1)
                 {
                     Border border = GetBorder(particle);
@@ -419,9 +414,8 @@ public class ParticleLogic : MonoBehaviour
         
         Particle neighbourParticle = _worldManager.GetParticle(neighbourPos.x, neighbourPos.y);
         
-        neighbourChunk.AddParticle(particle.type, neighbourParticle.Index, particle.id);
-        currentChunk.AddParticle(neighbourParticle.type, particle.Index, neighbourParticle.id);
-
+        neighbourChunk.AddParticle(neighbourParticle.index, particle.type);
+        currentChunk.AddParticle(particle.index, neighbourParticle.type);
         
         currentChunk.isActiveNextFrame = true;
         if (neighbourChunk != currentChunk)

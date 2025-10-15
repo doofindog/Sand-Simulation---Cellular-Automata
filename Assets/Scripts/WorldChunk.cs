@@ -46,6 +46,7 @@ public class WorldChunk : MonoBehaviour
         int len = chunkSize.x * chunkSize.y;
         
         m_readParticle = new Particle[len];
+        m_writeParticle = new Particle[len];
         m_chuckColour = new Color[len];
         
         Array.Clear(m_readParticle, 0, len);
@@ -54,24 +55,6 @@ public class WorldChunk : MonoBehaviour
         if (m_mainCamera == null)
         {
             return;
-        }
-        
-        Bounds bounds = m_spriteRenderer.bounds;
-        Vector3 boundsMin = bounds.min;
-        Vector3 boundsSize = bounds.size;
-        
-        float screenAspect = (float)Screen.width / Screen.height;
-        float cameraHeight = m_mainCamera.orthographicSize * 2;
-        Bounds cameraBounds =  new Bounds(
-            m_mainCamera.transform.position,
-            new Vector3(cameraHeight * screenAspect, cameraHeight, 0));
-        
-        float invTexW = 1f / m_worldTexture.width;
-        float invTexH = 1f / m_worldTexture.height;
-
-        for (int i = 0; i < m_readParticle.Length; i++)
-        {
-            m_readParticle[i] = new Particle();
         }
         
         for(int y = 0; y < chunkSize.y; y++)
@@ -83,36 +66,23 @@ public class WorldChunk : MonoBehaviour
                 int index = x + y * chunkSize.x;
                 
 
-                Particle particle = m_readParticle[index];
-                particle.index = index;
-                particle.chunkId = m_chunkId;
-                particle.positionX = xIndex;
-                particle.positionY = yIndex;
-                particle.localPositionX = x;
-                particle.localPositionY = y;
-                particle.type = ParticleType.Air;
-                particle.colour = new Color32(255, 255, 255, 255);
-                
-                m_chuckColour[index] = particle.colour;
-                
-                float xRatio = x * invTexW;
-                float yRatio = y * invTexH;
-                
-                float wx = boundsMin.x + (boundsSize.x * xRatio);
-                float wy = boundsMin.y + (boundsSize.y * yRatio);
-
-                if (wx < cameraBounds.min.x || wx > cameraBounds.max.x ||
-                    wy < cameraBounds.min.y || wy > cameraBounds.max.y)
+                Particle particle = new Particle
                 {
-                    particle.type = ParticleType.Air;
-                    particle.colour = new Color32(255, 0, 0, 255);
-                    m_chuckColour[index] = particle.colour;
-                }
-                
-                m_readParticle[index] = particle;
+                    index = index,
+                    chunkId = m_chunkId,
+                    positionX = xIndex,
+                    positionY = yIndex,
+                    localPositionX = x,
+                    localPositionY = y,
+                    type = ParticleType.Air
+                };
+
+                m_chuckColour[index] = particle.colour;
+                WriteToParticleIndex(index, particle);
             } 
         }
         
+        SwapReadWrite();
         UpdateTexture();
     }
 
@@ -138,25 +108,13 @@ public class WorldChunk : MonoBehaviour
         Particle particle = GetParticleAtIndex(index);
         return particle.type != ParticleType.Air;
     }
-
-    public void AddParticle(ParticleType type, Vector2Int particlePos, int id = 0)
-    {
-        int index = particlePos.x + particlePos.y * m_chunkSize.x;
-        Particle particle = m_readParticle[index];
-        particle.type = type;
-        particle.updated = 1;
-        particle.id = id;
-        m_readParticle[index] = particle;
-    }
     
-    
-    public void AddParticle(ParticleType type, int index, int id = 0)
+    public void AddParticle(int index, ParticleType type)
     {
         Particle particle = m_readParticle[index];
         particle.type = type;
-        particle.updated = 1;
-        particle.id = id;
-        m_readParticle[index] = particle;
+        
+        WriteToParticleIndex(index, particle);
     }
 
     public void DrawPixel(Color[] color)
@@ -195,7 +153,7 @@ public class WorldChunk : MonoBehaviour
 
     public Particle[] GetParticles()
     {
-        return m_writeParticle;
+        return m_readParticle;
     }
 
     public void SetParticleUpdated(int particlePositionX, int particlePositionY, byte value)
@@ -204,5 +162,27 @@ public class WorldChunk : MonoBehaviour
         Particle particle = m_readParticle[index];
         particle.updated = value;
         m_readParticle[index] = particle;
+    }
+
+    public void ClearWrite()
+    {
+        for(int i = 0; i < m_writeParticle.Length; i++)
+        {
+            Particle particle = m_writeParticle[i];
+            particle.type = ParticleType.Air;
+            particle.updated = 0;
+            
+            m_writeParticle[i] = particle;
+        }
+    }
+
+    public void SwapReadWrite()
+    {
+        (m_readParticle, m_writeParticle) = (m_writeParticle, m_readParticle);
+    }
+
+    private void WriteToParticleIndex(int index, Particle updatedParticle)
+    {
+        m_writeParticle[index] = updatedParticle;
     }
 }

@@ -5,7 +5,6 @@ using UnityEngine;
 public struct Particle
 {
     public int chunkId;
-    public int id;
     public int index;
     
     public int positionX;
