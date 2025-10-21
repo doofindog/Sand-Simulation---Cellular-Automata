@@ -6,6 +6,7 @@ public class ParticleMovement
 {
     public enum MoveDirection
     {
+        None,
         Up,
         UpRight,
         Right,

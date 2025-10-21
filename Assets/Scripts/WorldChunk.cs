@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 
@@ -11,8 +12,9 @@ public class WorldChunk : MonoBehaviour
     private Texture2D m_worldTexture;
     [SerializeField] private Particle[] m_readParticle;
     [SerializeField] private Particle[] m_writeParticle;
+    [SerializeField] private HashSet<int> m_writtenIndex;
     private Particle[] m_modifiedParticles;
-    private Color[] m_chuckColour;         
+    private Color[] m_chuckColour;
     private WorldChunk[] m_neighbourChunks;
     private Vector2Int m_chunkSize;
     private Camera m_mainCamera;
@@ -28,6 +30,8 @@ public class WorldChunk : MonoBehaviour
     
     public void Init(int chunkIndex, Vector2Int chunkPosition,Vector2Int chunkSize)
     {
+        m_writtenIndex = new HashSet<int>();
+        
         m_chunkId = chunkIndex;
         m_chunkSize = chunkSize;
         m_chunkPosition = chunkPosition;
@@ -78,11 +82,11 @@ public class WorldChunk : MonoBehaviour
                 };
 
                 m_chuckColour[index] = particle.colour;
+                m_readParticle[index] = particle;
                 WriteToParticleIndex(index, particle);
             } 
         }
         
-        SwapReadWrite();
         UpdateTexture();
     }
 
@@ -117,38 +121,19 @@ public class WorldChunk : MonoBehaviour
         WriteToParticleIndex(index, particle);
     }
 
-    public void DrawPixel(Color[] color)
-    {
-        m_worldTexture.SetPixels(color);
-        m_worldTexture.Apply();
-    }
-
     public void UpdateTexture()
     {
         for (int i = 0; i < m_readParticle.Length; i++)
         {
             ParticleData particleData = ParticleManager.GetParticleData(m_readParticle[i].type);
-            if (m_readParticle[i].type != ParticleType.Air)
-            {
-                m_chuckColour[i] = particleData.colour;
-            }
-            else
-            {
-                m_chuckColour[i] = Color.white;
-            }
-
-
-            if (m_readParticle[i].updated == 1)
-            {
-                Particle particle = m_readParticle[i];
-                particle.updated = 0;
-                m_readParticle[i] = particle;
-            }
+            m_chuckColour[i] = particleData.colour;
         }
         
         m_worldTexture.SetPixels(m_chuckColour);
         if (m_worldTexture != null && m_worldTexture.isReadable)
+        {
             m_worldTexture.Apply(false);
+        }
     }
 
     public Particle[] GetParticles()
@@ -170,10 +155,11 @@ public class WorldChunk : MonoBehaviour
         {
             Particle particle = m_writeParticle[i];
             particle.type = ParticleType.Air;
-            particle.updated = 0;
             
             m_writeParticle[i] = particle;
         }
+        
+        m_writtenIndex.Clear();
     }
 
     public void SwapReadWrite()
@@ -181,8 +167,12 @@ public class WorldChunk : MonoBehaviour
         (m_readParticle, m_writeParticle) = (m_writeParticle, m_readParticle);
     }
 
-    private void WriteToParticleIndex(int index, Particle updatedParticle)
+    public void WriteToParticleIndex(int index, Particle updatedParticle)
     {
+        if(m_writtenIndex.Contains(index))
+            return;
+        
         m_writeParticle[index] = updatedParticle;
+        m_writtenIndex.Add(index);
     }
 }

@@ -9,7 +9,7 @@ public struct Particle
     
     public int positionX;
     public int positionY;
-
+    
     public int localPositionX;
     public int localPositionY;
     

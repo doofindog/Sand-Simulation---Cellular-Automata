@@ -182,7 +182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pixelPerUnit: 16
-  worldSize: {x: 160, y: 160}
+  worldSize: {x: 32, y: 32}
   chunkSize: {x: 32, y: 32}
   m_chunks: []
 --- !u!4 &363839208

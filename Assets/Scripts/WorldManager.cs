@@ -141,16 +141,4 @@ public class WorldManager : MonoBehaviour
         
         return chunk.GetParticleAtIndex(index);
     }
-
-    public bool ContainsParticle(int x, int y)
-    {
-        WorldChunk chunk = GetChunkFromParticlePosition(x, y);
-        
-        int pixelPositionX = x % chunkSize.x;
-        int pixelPositionY = y % chunkSize.y;
-        
-        int index = pixelPositionX + pixelPositionY * chunkSize.x;
-            
-        return chunk.ContainsParticle(index);
-    }
 }
