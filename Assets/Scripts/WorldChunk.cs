@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Azen.Logger;
 using UnityEngine;
 
 public class WorldChunk : MonoBehaviour
@@ -12,7 +13,7 @@ public class WorldChunk : MonoBehaviour
     private Texture2D m_worldTexture;
     [SerializeField] private Particle[] m_readParticle;
     [SerializeField] private Particle[] m_writeParticle;
-    [SerializeField] private HashSet<int> m_writtenIndex;
+    private HashSet<int> m_writtenIndex;
     private Particle[] m_modifiedParticles;
     private Color[] m_chuckColour;
     private WorldChunk[] m_neighbourChunks;
@@ -27,6 +28,7 @@ public class WorldChunk : MonoBehaviour
     
     public int ChunkId => m_chunkId;
     public Vector2Int ChunkPosition => m_chunkPosition;
+    public SpriteRenderer Renderer => m_spriteRenderer;
     
     public void Init(int chunkIndex, Vector2Int chunkPosition,Vector2Int chunkSize)
     {
@@ -113,10 +115,11 @@ public class WorldChunk : MonoBehaviour
         return particle.type != ParticleType.Air;
     }
     
-    public void AddParticle(int index, ParticleType type)
+    public void AddParticle(int index, ParticleType type, int id)
     {
         Particle particle = m_readParticle[index];
         particle.type = type;
+        particle.id = id;
         
         WriteToParticleIndex(index, particle);
     }
@@ -164,15 +167,13 @@ public class WorldChunk : MonoBehaviour
 
     public void SwapReadWrite()
     {
+        CustomLogger.Log("Swapping Read and Write", CustomLogger.LogCategory.WorldChunk);
         (m_readParticle, m_writeParticle) = (m_writeParticle, m_readParticle);
     }
 
     public void WriteToParticleIndex(int index, Particle updatedParticle)
     {
-        if(m_writtenIndex.Contains(index))
-            return;
-        
         m_writeParticle[index] = updatedParticle;
-        m_writtenIndex.Add(index);
+        CustomLogger.Log($"Updating Particle {updatedParticle.index} | ({updatedParticle.localPositionX}, {updatedParticle.localPositionY}) | {updatedParticle.ParticleType}) ", CustomLogger.LogCategory.WorldChunk);
     }
 }

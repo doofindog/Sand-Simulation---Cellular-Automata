@@ -4,6 +4,7 @@ using UnityEngine;
 [System.Serializable]
 public struct Particle
 {
+    public int id;
     public int chunkId;
     public int index;
     

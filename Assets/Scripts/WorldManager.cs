@@ -22,6 +22,8 @@ public class WorldManager : MonoBehaviour
     private int m_chunkWidth;
     private int m_chunkHeight;
 
+    public int ParticleID = 0;
+
     private void Awake()
     {
         instance = this;
@@ -92,11 +94,13 @@ public class WorldManager : MonoBehaviour
         ParticleLogic logic = world.AddComponent<ParticleLogic>();
         logic.Init(this);
         
+        // [=== Set Camera Size ===]
         Camera mainCamera = Camera.main;
         int size = worldSize.y / chunkSize.x;
         mainCamera.orthographicSize = size;
         mainCamera.transform.position = new Vector3(size - 1, size - 1, -10); 
         
+        //Debug.Break();
     }
 
     public WorldChunk GetChunk(int x, int y)
