@@ -13,7 +13,7 @@ public class WorldChunk : MonoBehaviour
     private Texture2D m_worldTexture;
     [SerializeField] private Particle[] m_readParticle;
     [SerializeField] private Particle[] m_writeParticle;
-    private HashSet<int> m_writtenIndex;
+    [SerializeField] private ParticleWriteInfo[] m_writeInfo;
     private Particle[] m_modifiedParticles;
     private Color[] m_chuckColour;
     private WorldChunk[] m_neighbourChunks;
@@ -32,8 +32,6 @@ public class WorldChunk : MonoBehaviour
     
     public void Init(int chunkIndex, Vector2Int chunkPosition,Vector2Int chunkSize)
     {
-        m_writtenIndex = new HashSet<int>();
-        
         m_chunkId = chunkIndex;
         m_chunkSize = chunkSize;
         m_chunkPosition = chunkPosition;
@@ -53,6 +51,7 @@ public class WorldChunk : MonoBehaviour
         
         m_readParticle = new Particle[len];
         m_writeParticle = new Particle[len];
+        m_writeInfo = new ParticleWriteInfo[len];
         m_chuckColour = new Color[len];
         
         Array.Clear(m_readParticle, 0, len);
@@ -158,17 +157,36 @@ public class WorldChunk : MonoBehaviour
         {
             Particle particle = m_writeParticle[i];
             particle.type = ParticleType.Air;
+            particle.id = 0;
             
             m_writeParticle[i] = particle;
         }
-        
-        m_writtenIndex.Clear();
     }
 
     public void SwapReadWrite()
     {
         CustomLogger.Log("Swapping Read and Write", CustomLogger.LogCategory.WorldChunk);
         (m_readParticle, m_writeParticle) = (m_writeParticle, m_readParticle);
+
+        for (int i = 0; i < m_readParticle.Length; i++)
+        {
+            int readIndex = m_readParticle[i].index;
+            int writeIndex = m_writeParticle[i].index;
+            
+            int readX = m_readParticle[i].localPositionX;
+            int readY = m_readParticle[i].localPositionY;
+            
+            int writeX = m_writeParticle[i].localPositionX;
+            int writeY = m_writeParticle[i].localPositionY;
+            
+            ParticleType readType = m_readParticle[i].type;
+            ParticleType writeType = m_writeParticle[i].type;
+            
+            int readId = m_readParticle[i].id;
+            int writeId = m_writeParticle[i].id;
+            
+            CustomLogger.Log($"Swaping -> {readIndex} -> {writeIndex} | ({readX},{readY}) -> ({writeX},{writeY}) | {readType} -> {writeType} | {{readId}} -> {{writeId}}", CustomLogger.LogCategory.WorldChunk);
+        }
     }
 
     public void WriteToParticleIndex(int index, Particle updatedParticle)

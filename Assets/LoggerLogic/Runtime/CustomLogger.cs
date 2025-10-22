@@ -41,21 +41,27 @@ namespace Azen.Logger
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+            #if LOG_SYSTEM
             LogInternal(message, category, LogType.Log, filePath, memberName, lineNumber);
+            #endif
         }
 
         public static void LogWarning(string message, LogCategory category = LogCategory.Warning,
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+            #if LOG_SYSTEM
             LogInternal(message, category, LogType.Warning, filePath, memberName, lineNumber);
+#endif
         }
 
         public static void LogError(string message, LogCategory category = LogCategory.Error,
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+            #if LOG_SYSTEM
             LogInternal(message, category, LogType.Error, filePath, memberName, lineNumber);
+#endif
         }
         #endregion
 
@@ -64,21 +70,27 @@ namespace Azen.Logger
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+            #if LOG_SYSTEM
             LogInternal(obj?.ToString(), category, LogType.Log, filePath, memberName, lineNumber);
+            #endif
         }
 
         public static void LogWarning(object obj, LogCategory category = LogCategory.Warning,
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+#if LOG_SYSTEM
             LogInternal(obj?.ToString(), category, LogType.Warning, filePath, memberName, lineNumber);
+#endif
         }
 
         public static void LogError(object obj, LogCategory category = LogCategory.Error,
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+            #if LOG_SYSTEM
             LogInternal(obj?.ToString(), category, LogType.Error, filePath, memberName, lineNumber);
+#endif
         }
         #endregion
 
@@ -87,7 +99,9 @@ namespace Azen.Logger
             [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "",
             [CallerLineNumber] int lineNumber = 0)
         {
+            #if LOG_SYSTEM
             LogInternal($"=== {label} ===", category, LogType.Log, filePath, memberName, lineNumber);
+#endif
         }
         #endregion
 

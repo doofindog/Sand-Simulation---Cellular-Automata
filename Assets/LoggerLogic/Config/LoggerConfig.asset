@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   EnableAllLogs: 1
   EditorOnly: 1
+  DisableLogSystem: 0
   categories:
   - Category: 9
     Enabled: 1

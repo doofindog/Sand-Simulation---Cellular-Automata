@@ -15,19 +15,13 @@ MonoBehaviour:
   particleType: 1
   colour: {r: 0.31372374, g: 0.6926832, b: 0.8867924, a: 1}
   movements:
-  - moveDir: 4
+  - moveDir: 5
     distance: 1
     chance: 1
-  - moveDir: 8
+  - moveDir: 11
     distance: 1
     chance: 1
-  - moveDir: 10
-    distance: 4
-    chance: 1
-  - moveDir: 6
-    distance: 1
-    chance: 1
-  - moveDir: 2
+  - moveDir: 9
     distance: 1
     chance: 1
   resistance: 0

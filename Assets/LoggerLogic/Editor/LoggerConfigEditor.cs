@@ -12,6 +12,7 @@ namespace Azen.Logger
         private SerializedProperty categoriesProp;
         private SerializedProperty enableAllProp;
         private SerializedProperty editorOnlyProp;
+        private SerializedProperty disableSystemProp;
 
         private Vector2 scrollPosition;
         private string searchFilter = "";
@@ -21,6 +22,7 @@ namespace Azen.Logger
             enableAllProp = serializedObject.FindProperty("EnableAllLogs");
             editorOnlyProp = serializedObject.FindProperty("EditorOnly");
             categoriesProp = serializedObject.FindProperty("categories");
+            disableSystemProp = serializedObject.FindProperty("DisableLogSystem");
         }
 
         public override void OnInspectorGUI()
@@ -95,6 +97,7 @@ namespace Azen.Logger
             EditorGUILayout.LabelField("Global Settings", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(enableAllProp);
             EditorGUILayout.PropertyField(editorOnlyProp);
+            EditorGUILayout.PropertyField(disableSystemProp);
             EditorGUILayout.Space();
         }
 

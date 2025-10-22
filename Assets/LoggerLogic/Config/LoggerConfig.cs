@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Linq;
 
 namespace Azen.Logger
@@ -8,6 +9,7 @@ namespace Azen.Logger
     {
         public bool EnableAllLogs = true;
         public bool EditorOnly = true;
+        public bool DisableLogSystem = true;
 
         [SerializeField] public CategorySetting[] categories;
 
@@ -42,6 +44,27 @@ namespace Azen.Logger
             public Color TagColor = Color.white;
             [Tooltip("Emoji prefix (1-2 characters)")]
             public string Emoji = "📝";
+        }
+
+        public void OnValidate()
+        {
+            #if UNITY_EDITOR
+            var defineSymbol = "LOG_SYSTEM";
+            var buildTargetGroup = UnityEditor.BuildTargetGroup.Standalone;
+            var defines = UnityEditor.PlayerSettings.GetScriptingDefineSymbolsForGroup(buildTargetGroup);
+            
+            var hasDefine = defines.Contains(defineSymbol);
+            if (!DisableLogSystem && !hasDefine)
+            {
+                defines = string.IsNullOrEmpty(defines) ? defineSymbol : defines + ";" + defineSymbol;
+                UnityEditor.PlayerSettings.SetScriptingDefineSymbolsForGroup(buildTargetGroup, defines);
+            }
+            else if (DisableLogSystem && hasDefine)
+            {
+                defines = defines.Replace(defineSymbol, "").Replace(";;", ";").Trim(';');
+                UnityEditor.PlayerSettings.SetScriptingDefineSymbolsForGroup(buildTargetGroup, defines);
+            }
+            #endif
         }
     }
 

@@ -23,3 +23,16 @@ public struct Particle
     public bool Updated => updated == 1;
     public int Index => index;
 }
+
+public struct ParticleClamInfo
+{
+    public int chunkId;
+    public int index;
+}
+
+public struct ParticleWriteInfo
+{
+    public ParticleClamInfo[] particle;
+}
+
+

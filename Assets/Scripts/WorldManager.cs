@@ -1,4 +1,5 @@
 using System.Collections;
+using Azen.Logger;
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -19,13 +20,18 @@ public class WorldManager : MonoBehaviour
     
     
     [SerializeField] private WorldChunk[] m_chunks;
+    [SerializeField] private ParticleLogic m_particleLogic;
     private int m_chunkWidth;
     private int m_chunkHeight;
+    
+    [Header("=== Debug ===")]
+    [SerializeField] public LoggerConfig m_loggerConfig;
 
     public int ParticleID = 0;
 
     private void Awake()
     {
+        CustomLogger.Config = m_loggerConfig;
         instance = this;
     }
 
@@ -91,8 +97,8 @@ public class WorldManager : MonoBehaviour
         yield return null;
         
 
-        ParticleLogic logic = world.AddComponent<ParticleLogic>();
-        logic.Init(this);
+        m_particleLogic ??= world.AddComponent<ParticleLogic>();
+        m_particleLogic.Init(this);
         
         // [=== Set Camera Size ===]
         Camera mainCamera = Camera.main;

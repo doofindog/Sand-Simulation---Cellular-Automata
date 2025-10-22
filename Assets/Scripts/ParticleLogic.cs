@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Azen.Logger;
 using UnityEngine;
+using UnityEngine.Profiling;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
@@ -13,13 +14,13 @@ public class ParticleLogic : MonoBehaviour
     private WorldChunk[] m_chunks;
     private Camera m_camera;
     private float m_timer;
-    [SerializeField] private float m_updateTime = 0.1f;
-    [SerializeField] private int m_iterationFrame = 1;
+    [SerializeField] private float m_updateTime = 0.01f;
     private bool m_flip;
     private int m_nextParticleId;
 
-    [Header("=== Debugging ===")] [SerializeField]
-    private int m_chunkIndex;
+    [Header("=== Debugging ===")] 
+    [SerializeField] private int m_chunkIndex;
+    [SerializeField] private bool m_debug_addParticleInCenter;
 
     public void Init(WorldManager worldManager)
     {
@@ -36,6 +37,11 @@ public class ParticleLogic : MonoBehaviour
 
     public void Update()
     {
+        if (inputKeys == null)
+        {
+            return;
+        }
+        
         for (int i = 0; i < inputKeys.Length; i++)
         {
             if (Input.GetKeyDown(inputKeys[i]))
@@ -45,40 +51,47 @@ public class ParticleLogic : MonoBehaviour
             }
         }
 
-        // m_timer += Time.deltaTime;
-        // if (m_timer < m_updateTime)
-        //     return;
+        m_timer += Time.deltaTime;
+        if (m_timer < m_updateTime)
+            return;
 
         m_timer = 0;
 
+        Profiler.BeginSample("UpdateChunk");
         // Loop Through All Chunks
         for (int i = 0; i < m_chunks.Length; i++)
         {
             WorldChunk chunk = m_chunks[i];
             if (chunk == null || !chunk.chunkActive) continue;
 
+            //=== Update Each Particle ===
             CustomLogger.Log("Processing Chunk: " + i, CustomLogger.LogCategory.ParticleLogic);
-            //Update Each Particle
             var particles = chunk.GetParticles();
             for (int j = 0; j < particles.Length; j++)
             {
-                //Move Particle
-                //Wake Neighbour Chunks if Required
-                //Write Particle To Buffer.
+                //=== Move Particle | Wake Neighbour Chunks if Required | Write Particle To Buffer. ===
                 UpdateParticle(particles[j]);
             }
         }
+        Profiler.EndSample();
 
-        // if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(1))
-        // {
-        //     //Add New Particle To Write Buffer.
-        //     bool doubleSize = Input.GetKey(KeyCode.LeftShift);
-        //     TryAddParticleAtMousePosition(doubleSize);
-        // }
-
-        bool doubleSize = Input.GetKey(KeyCode.LeftShift);
-        TryAddParticleAtMousePosition(doubleSize);
-
+        if (m_debug_addParticleInCenter)
+        {
+            bool doubleSize = Input.GetKey(KeyCode.LeftShift);
+            TryAddParticleAtPosition(new Vector2Int(16,16),doubleSize);
+        }
+        else
+        {
+            if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(1))
+            {
+                //Add New Particle To Write Buffer.
+                Vector2 mouseWorldPosition = m_camera.ScreenToWorldPoint(Input.mousePosition);
+                Vector2Int pixelPos = GetWorldPos(mouseWorldPosition);
+                bool doubleSize = Input.GetKey(KeyCode.LeftShift);
+                TryAddParticleAtPosition(pixelPos, doubleSize);
+            }     
+        }
+        
         foreach (WorldChunk chunk in m_chunks)
         {
             if (chunk == null || !chunk.isActiveNextFrame) continue;
@@ -95,17 +108,11 @@ public class ParticleLogic : MonoBehaviour
         }
     }
 
-    private void TryAddParticleAtMousePosition(bool doubleSize)
+    private void TryAddParticleAtPosition(Vector2Int pixelPos, bool doubleSize)
     {
-        //Get Mouse Position with respect to the world
-        // Vector2 mouseWorldPosition = m_camera.ScreenToWorldPoint(Input.mousePosition);
-        // Vector2Int pixelPos = GetWorldPos(mouseWorldPosition);
-        // Debug.Log(pixelPos);
-
-        Vector2Int pixelPos = new Vector2Int(15, 16);
+        //Vector2Int pixelPos = new Vector2Int(15, 16);
         int id = m_nextParticleId++;
-        CustomLogger.Log($"Adding Particle at ({pixelPos.x}, {pixelPos.y}) with ID : {id}",
-            CustomLogger.LogCategory.ParticleLogic);
+        CustomLogger.Log($"Adding Particle at ({pixelPos.x}, {pixelPos.y}) with ID : {id}", CustomLogger.LogCategory.ParticleLogic);
         if (CheckPositionBounds(pixelPos.x, pixelPos.y))
         {
             //Get Chunk from the world position.
@@ -126,13 +133,10 @@ public class ParticleLogic : MonoBehaviour
     {
         ParticleType particleType = particle.type;
         ParticleMovement[] movements = GetParticleMovements(particleType);
-        if (movements == null || movements.Length == 0)
-        {
-            return;
-        }
 
+        //TODO : Instead of Move Particle, Add A Particle variable called Processed Particle and Assign it to back then write it.
+        bool particleMoved = false;
         Vector2Int dir = Vector2Int.zero;
-
         foreach (ParticleMovement movement in movements)
         {
             switch (movement.moveDir)
@@ -165,22 +169,24 @@ public class ParticleLogic : MonoBehaviour
                     dir = new Vector2Int((Random.value < 0.5f) ? -1 : 1, 1);
                     break;
             }
-
-            CustomLogger.Log($"Particle ID : {particle.id} : Processing Movement -> {movement} -> [{dir}]",
-                CustomLogger.LogCategory.ParticleLogic);
-            var particleMoved = TryMoveParticleInDirection(particle, dir, movement.distance);
+            Profiler.BeginSample("Move Particle");
+            CustomLogger.Log($"Particle ID : {particle.id} | ({particle.localPositionX}, {particle.localPositionY}) | Processing Movement -> {movement} -> [{dir}]", CustomLogger.LogCategory.ParticleLogic);
+            particleMoved = TryMoveParticleInDirection(particle, dir, movement.distance);
             if (particleMoved)
             {
                 TryActivateNeighbourChunk(particle);
+                Profiler.EndSample();
                 break;
             }
-
-            CustomLogger.Log($"Particle ID : {particle.id} : Could not move in Direction -> [{dir}] ",
-                CustomLogger.LogCategory.ParticleLogic);
+            
+            CustomLogger.Log($"Particle ID : {particle.id} : Could not move in Direction -> [{dir}] ", CustomLogger.LogCategory.ParticleLogic); 
+            Profiler.EndSample();
+            
+            WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
+            chunk.WriteToParticleIndex(particle.index, particle);
         }
 
-        WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
-        chunk.WriteToParticleIndex(particle.index, particle);
+
     }
 
     private void TryActivateNeighbourChunk(Particle particle)
@@ -332,8 +338,9 @@ public class ParticleLogic : MonoBehaviour
         neighbourChunk.AddParticle(neighbourParticle.index, particle.type, particle.id);
         currentChunk.AddParticle(particle.index, neighbourParticle.type, neighbourParticle.id);
 
-        Debug.Log(
-            $"Particle ID : {particle.id} :  Moving to {neighbourParticle.localPositionX} {neighbourParticle.localPositionY}");
+        //currentChunk.isActiveNextFrame = neighbourChunk.isActiveNextFrame = true;
+
+        CustomLogger.Log($"Particle ID : {particle.id} :  Moving to {neighbourParticle.localPositionX} {neighbourParticle.localPositionY}", CustomLogger.LogCategory.ParticleLogic);
     }
 
     #endregion
@@ -410,10 +417,11 @@ public class ParticleLogic : MonoBehaviour
 
     #region ParicleHelpers
 
-    public ParticleMovement[] GetParticleMovements(ParticleType type)
+    private ParticleMovement[] GetParticleMovements(ParticleType type)
     {
         ParticleData data = ParticleManager.GetParticleData(type);
-        return data.movements;
+        ParticleMovement[] movements = data.movements;
+        return movements == null ? Array.Empty<ParticleMovement>() : movements;
     }
 
     private void SetUpdated(Particle particle, byte value)
