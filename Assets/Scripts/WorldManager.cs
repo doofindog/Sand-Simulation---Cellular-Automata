@@ -100,7 +100,7 @@ public class WorldManager : MonoBehaviour
         mainCamera.orthographicSize = size;
         mainCamera.transform.position = new Vector3(size - 1, size - 1, -10); 
         
-        //Debug.Break();
+        Debug.Break();
     }
 
     public WorldChunk GetChunk(int x, int y)

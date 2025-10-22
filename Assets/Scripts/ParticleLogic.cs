@@ -18,23 +18,22 @@ public class ParticleLogic : MonoBehaviour
     private bool m_flip;
     private int m_nextParticleId;
 
-    [Header("=== Debugging ===")] 
-    [SerializeField] private int m_chunkIndex;
+    [Header("=== Debugging ===")] [SerializeField]
+    private int m_chunkIndex;
 
     public void Init(WorldManager worldManager)
     {
         inputKeys = new[]
         {
-            KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5,
-            KeyCode.Alpha6, KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9
+            KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6,
+            KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9
         };
-        
+
         _worldManager = worldManager;
         m_chunks = _worldManager.GetAllChunks();
         m_camera = Camera.main;
-        
     }
-    
+
     public void Update()
     {
         for (int i = 0; i < inputKeys.Length; i++)
@@ -45,20 +44,19 @@ public class ParticleLogic : MonoBehaviour
                 _selectedType = data.particleType;
             }
         }
-        
+
         // m_timer += Time.deltaTime;
         // if (m_timer < m_updateTime)
         //     return;
-        
+
         m_timer = 0;
 
         // Loop Through All Chunks
         for (int i = 0; i < m_chunks.Length; i++)
         {
             WorldChunk chunk = m_chunks[i];
-            if (chunk == null || !chunk.chunkActive)
-                continue;
-            
+            if (chunk == null || !chunk.chunkActive) continue;
+
             CustomLogger.Log("Processing Chunk: " + i, CustomLogger.LogCategory.ParticleLogic);
             //Update Each Particle
             var particles = chunk.GetParticles();
@@ -70,26 +68,25 @@ public class ParticleLogic : MonoBehaviour
                 UpdateParticle(particles[j]);
             }
         }
-        
+
         // if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(1))
         // {
         //     //Add New Particle To Write Buffer.
         //     bool doubleSize = Input.GetKey(KeyCode.LeftShift);
         //     TryAddParticleAtMousePosition(doubleSize);
         // }
-        
+
         bool doubleSize = Input.GetKey(KeyCode.LeftShift);
         TryAddParticleAtMousePosition(doubleSize);
 
         foreach (WorldChunk chunk in m_chunks)
         {
-            if (chunk == null || !chunk.isActiveNextFrame)
-                continue;
-            
+            if (chunk == null || !chunk.isActiveNextFrame) continue;
+
             //Swap Read and Write Buffers and Update Texture.
             chunk.SwapReadWrite();
             chunk.UpdateTexture();
-            
+
             //Clear Write Buffer.
             chunk.ClearWrite();
 
@@ -97,16 +94,18 @@ public class ParticleLogic : MonoBehaviour
             chunk.isActiveNextFrame = false;
         }
     }
-    
+
     private void TryAddParticleAtMousePosition(bool doubleSize)
     {
         //Get Mouse Position with respect to the world
-        Vector2 mouseWorldPosition = m_camera.ScreenToWorldPoint(Input.mousePosition);
-        Vector2Int pixelPos = GetWorldPos(mouseWorldPosition);
-        Debug.Log(pixelPos);
-        
-        //Vector2Int pixelPos = new Vector2Int(15,16);
-        
+        // Vector2 mouseWorldPosition = m_camera.ScreenToWorldPoint(Input.mousePosition);
+        // Vector2Int pixelPos = GetWorldPos(mouseWorldPosition);
+        // Debug.Log(pixelPos);
+
+        Vector2Int pixelPos = new Vector2Int(15, 16);
+        int id = m_nextParticleId++;
+        CustomLogger.Log($"Adding Particle at ({pixelPos.x}, {pixelPos.y}) with ID : {id}",
+            CustomLogger.LogCategory.ParticleLogic);
         if (CheckPositionBounds(pixelPos.x, pixelPos.y))
         {
             //Get Chunk from the world position.
@@ -114,38 +113,13 @@ public class ParticleLogic : MonoBehaviour
             int pixelPositionX = pixelPos.x % _worldManager.chunkSize.x;
             int pixelPositionY = pixelPos.y % _worldManager.chunkSize.y;
             int index = pixelPositionX + pixelPositionY * _worldManager.chunkSize.x;
-        
+
             //Add Particle to the chunk.
             //Write Particle to the buffer.
-            chunk.AddParticle(index, _selectedType, m_nextParticleId++);
+            chunk.AddParticle(index, _selectedType, id);
 
             chunk.isActiveNextFrame = true;
         }
-        
-        // if (!doubleSize)
-        // {
-        //   
-        // }
-        // else
-        // {
-        //     int radius = 4; // brush radius in pixels (change as you like)
-        //
-        //     Vector2Int center = GetWorldPos(mouseWorldPosition);
-        //
-        //     for (int dx = -radius; dx <= radius; dx++)
-        //     {
-        //         for (int dy = -radius; dy <= radius; dy++)
-        //         {
-        //             // inside the circle if dx^2 + dy^2 <= r^2
-        //             if (dx * dx + dy * dy <= radius * radius)
-        //             {
-        //                 Vector2Int p = new Vector2Int(center.x + dx, center.y + dy);
-        //                 if (CheckPositionBounds(p.x, p.y))
-        //                     AddParticle(p, _selectedType);
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     private void UpdateParticle(Particle particle)
@@ -158,101 +132,89 @@ public class ParticleLogic : MonoBehaviour
         }
 
         Vector2Int dir = Vector2Int.zero;
-        
-        CustomLogger.Log($"Updating Particle {particle.id} | ({particle.localPositionX}, {particle.localPositionY}) | {particle.ParticleType}) ", CustomLogger.LogCategory.ParticleLogic);
-        if (movements.Length == 0)
-        {
-            CustomLogger.Log($"Particle {particle.id} : No Movement Present", CustomLogger.LogCategory.ParticleLogic);
-            WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
-            chunk.WriteToParticleIndex(particle.index, particle);
-        }
-        else
-        {
 
-            foreach (ParticleMovement movement in movements)
+        foreach (ParticleMovement movement in movements)
+        {
+            switch (movement.moveDir)
             {
-             
-                switch (movement.moveDir)
-                {
-                    case ParticleMovement.MoveDirection.Up:
-                        dir = Vector2Int.up;
-                        break;
-                    case ParticleMovement.MoveDirection.Down:
-                        dir = Vector2Int.down;
-                        break;
-                    case ParticleMovement.MoveDirection.Left:
-                        dir = Vector2Int.left;
-                        break;
-                    case ParticleMovement.MoveDirection.Right:
-                        dir = Vector2Int.right;
-                        break;
-                    case ParticleMovement.MoveDirection.DownLeft:
-                        dir = new Vector2Int(-1, -1);
-                        break;
-                    case ParticleMovement.MoveDirection.DownRight:
-                        dir = new Vector2Int(1, -1);
-                        break;
-                    case ParticleMovement.MoveDirection.RandomDownDiagonal:
-                        dir = new Vector2Int(Random.value < 0.5f ? -1 : 1, -1);
-                        break;
-                    case ParticleMovement.MoveDirection.RandomHorizontal:
-                        dir = new Vector2Int((Random.value < 0.5f) ? -1 : 1, 0);
-                        break;
-                    case ParticleMovement.MoveDirection.RandomUpDiagonal:
-                        dir = new Vector2Int((Random.value < 0.5f) ? -1 : 1, 1);
-                        break;
-                }
-                CustomLogger.Log($"Particle {particle.id} : Processing Movement -> {movement} -> [{dir}]", CustomLogger.LogCategory.ParticleLogic);
-                var particleMoved = TryMoveParticleInDirection(particle, dir, movement.distance);
-                if (particleMoved)
-                {
-                    TryActivateNeighbourChunk(particle);
+                case ParticleMovement.MoveDirection.Up:
+                    dir = Vector2Int.up;
                     break;
-                }
-                
-                CustomLogger.Log($"Particle {particle.id} : Could not move in Direction -> [{dir}] ", CustomLogger.LogCategory.ParticleLogic);
+                case ParticleMovement.MoveDirection.Down:
+                    dir = Vector2Int.down;
+                    break;
+                case ParticleMovement.MoveDirection.Left:
+                    dir = Vector2Int.left;
+                    break;
+                case ParticleMovement.MoveDirection.Right:
+                    dir = Vector2Int.right;
+                    break;
+                case ParticleMovement.MoveDirection.DownLeft:
+                    dir = new Vector2Int(-1, -1);
+                    break;
+                case ParticleMovement.MoveDirection.DownRight:
+                    dir = new Vector2Int(1, -1);
+                    break;
+                case ParticleMovement.MoveDirection.RandomDownDiagonal:
+                    dir = new Vector2Int(Random.value < 0.5f ? -1 : 1, -1);
+                    break;
+                case ParticleMovement.MoveDirection.RandomHorizontal:
+                    dir = new Vector2Int((Random.value < 0.5f) ? -1 : 1, 0);
+                    break;
+                case ParticleMovement.MoveDirection.RandomUpDiagonal:
+                    dir = new Vector2Int((Random.value < 0.5f) ? -1 : 1, 1);
+                    break;
             }
-        }
-        
 
+            CustomLogger.Log($"Particle ID : {particle.id} : Processing Movement -> {movement} -> [{dir}]",
+                CustomLogger.LogCategory.ParticleLogic);
+            var particleMoved = TryMoveParticleInDirection(particle, dir, movement.distance);
+            if (particleMoved)
+            {
+                TryActivateNeighbourChunk(particle);
+                break;
+            }
+
+            CustomLogger.Log($"Particle ID : {particle.id} : Could not move in Direction -> [{dir}] ",
+                CustomLogger.LogCategory.ParticleLogic);
+        }
+
+        WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
+        chunk.WriteToParticleIndex(particle.index, particle);
     }
 
     private void TryActivateNeighbourChunk(Particle particle)
     {
         WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
         chunk.isActiveNextFrame = true;
-                
+
         int x = particle.localPositionX;
         int y = particle.localPositionY;
-                
+
         // === If particle has been updated in the border. Activate its neighbor chunk ===
         if (x == 0 || y == 0 || x == _worldManager.worldSize.x - 1 || y == _worldManager.worldSize.y - 1)
         {
             Border border = GetBorder(particle);
-                    
+
             // Wake up adjacent chunks depending on which borders the particle touched
-            if ((border & Border.Top) == Border.Top)
-                WakeUpChunkInDir(chunk.ChunkPosition,Vector2Int.up);
-                
-            if ((border & Border.Bottom) == Border.Bottom)
-                WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.down);
-                
-            if ((border & Border.Left) == Border.Left)
-                WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.left);
-                
-            if ((border & Border.Right) == Border.Right)
-                WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.right);
-                
+            if ((border & Border.Top) == Border.Top) WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.up);
+
+            if ((border & Border.Bottom) == Border.Bottom) WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.down);
+
+            if ((border & Border.Left) == Border.Left) WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.left);
+
+            if ((border & Border.Right) == Border.Right) WakeUpChunkInDir(chunk.ChunkPosition, Vector2Int.right);
+
             // Diagonals — combine both axis directions
             if ((border & Border.TopLeft) == Border.TopLeft)
                 WakeUpChunkInDir(chunk.ChunkPosition, new Vector2Int(-1, 1));
-                
+
             if ((border & Border.TopRight) == Border.TopRight)
                 WakeUpChunkInDir(chunk.ChunkPosition, new Vector2Int(1, 1));
-                
+
             if ((border & Border.BottomLeft) == Border.BottomLeft)
                 WakeUpChunkInDir(chunk.ChunkPosition, new Vector2Int(-1, -1));
-                
+
             if ((border & Border.BottomRight) == Border.BottomRight)
                 WakeUpChunkInDir(chunk.ChunkPosition, new Vector2Int(1, -1));
         }
@@ -274,14 +236,13 @@ public class ParticleLogic : MonoBehaviour
             {
                 break;
             }
-            
+
             MoveParticleInDirection(particle, dir);
             particleMoved = true;
         }
-        
+
         return particleMoved;
     }
-    
 
     private void WakeUpChunkInDir(Vector2Int position, Vector2Int direction)
     {
@@ -297,43 +258,35 @@ public class ParticleLogic : MonoBehaviour
     private Border GetBorder(Particle particle)
     {
         Border border = Border.None;
-        
+
         int width = _worldManager.chunkSize.x;
         int height = _worldManager.chunkSize.y;
         int x = particle.localPositionX;
         int y = particle.localPositionY;
-        
+
         // Check Top
-        if (y == 0 )
-            border |= Border.Top;
+        if (y == 0) border |= Border.Top;
 
         // Check Bottom
-        if (y == height - 1)
-            border |= Border.Bottom;
+        if (y == height - 1) border |= Border.Bottom;
 
         // Check Left
-        if (x == 0)
-            border |= Border.Left;
+        if (x == 0) border |= Border.Left;
 
         // Check Right
-        if (x == width - 1)
-            border |= Border.Right;
-        
-        if ((x == 0 || y == 0))
-            border |= Border.TopLeft;
+        if (x == width - 1) border |= Border.Right;
 
-        if ((x == width - 1 || y == 0))
-            border |= Border.TopRight;
+        if ((x == 0 || y == 0)) border |= Border.TopLeft;
 
-        if ((x == 0 || y == height - 1) )
-            border |= Border.BottomLeft;
+        if ((x == width - 1 || y == 0)) border |= Border.TopRight;
 
-        if ((x == width - 1 || y == height - 1))
-            border |= Border.BottomRight;
+        if ((x == 0 || y == height - 1)) border |= Border.BottomLeft;
+
+        if ((x == width - 1 || y == height - 1)) border |= Border.BottomRight;
 
         return border;
     }
-    
+
     [System.Flags]
     private enum Border
     {
@@ -342,10 +295,10 @@ public class ParticleLogic : MonoBehaviour
         Bottom = 1 << 1,
         Left = 1 << 2,
         Right = 1 << 3,
-        TopLeft      = 1 << 4,
-        TopRight     = 1 << 5,
-        BottomLeft   = 1 << 6,
-        BottomRight  = 1 << 7,
+        TopLeft = 1 << 4,
+        TopRight = 1 << 5,
+        BottomLeft = 1 << 6,
+        BottomRight = 1 << 7,
     }
 
     #region Movement Logic
@@ -359,7 +312,7 @@ public class ParticleLogic : MonoBehaviour
 
         if (!CheckPositionBounds(neighbourPos.x, neighbourPos.y) || ContainsParticle(neighbourPos.x, neighbourPos.y))
             return false;
-        
+
         Particle neighbourParticle = _worldManager.GetParticle(neighbourPos.x, neighbourPos.y);
 
         return neighbourParticle.type != particle.type;
@@ -370,16 +323,17 @@ public class ParticleLogic : MonoBehaviour
         int x = particle.positionX;
         int y = particle.positionY;
         Vector2Int neighbourPos = new Vector2Int(x, y) + dir;
-        
+
         WorldChunk currentChunk = _worldManager.GetChunk(particle.chunkId);
         WorldChunk neighbourChunk = _worldManager.GetChunkFromParticlePosition(neighbourPos.x, neighbourPos.y);
-        
+
         Particle neighbourParticle = _worldManager.GetParticle(neighbourPos.x, neighbourPos.y);
-        
+
         neighbourChunk.AddParticle(neighbourParticle.index, particle.type, particle.id);
-        currentChunk.AddParticle(particle.index, neighbourParticle.type, particle.id);
-        
-        Debug.Log($"Particle {particle.id} :  Moving to {neighbourParticle.localPositionX} {neighbourParticle.localPositionY}");
+        currentChunk.AddParticle(particle.index, neighbourParticle.type, neighbourParticle.id);
+
+        Debug.Log(
+            $"Particle ID : {particle.id} :  Moving to {neighbourParticle.localPositionX} {neighbourParticle.localPositionY}");
     }
 
     #endregion
@@ -390,16 +344,15 @@ public class ParticleLogic : MonoBehaviour
     {
         int sizeX = _worldManager.worldSize.x;
         int sizeY = _worldManager.worldSize.y;
-        
+
         WorldChunk chunk = _worldManager.GetChunkFromParticlePosition(x, y);
-        if(chunk == null)
-            return false;
-        
+        if (chunk == null) return false;
+
         int pixelPositionX = x % sizeX;
         int pixelPositionY = y % sizeY;
-        
+
         int index = pixelPositionX + pixelPositionY * sizeX;
-            
+
         return chunk.ContainsParticle(index);
     }
 
@@ -413,7 +366,7 @@ public class ParticleLogic : MonoBehaviour
         }
 
         Particle neighbourParticle = _worldManager.GetParticle(neighbourPos.x, neighbourPos.y);
-        
+
         if (particle.type == neighbourParticle.type)
         {
             return false;
@@ -426,8 +379,6 @@ public class ParticleLogic : MonoBehaviour
             float chance = Random.Range(0.0f, 1.0f);
             return chance > 0.3f;
         }
-
-
 
         return false;
     }
@@ -456,7 +407,7 @@ public class ParticleLogic : MonoBehaviour
     }
 
     #endregion
-    
+
     #region ParicleHelpers
 
     public ParticleMovement[] GetParticleMovements(ParticleType type)
@@ -464,15 +415,13 @@ public class ParticleLogic : MonoBehaviour
         ParticleData data = ParticleManager.GetParticleData(type);
         return data.movements;
     }
-    
+
     private void SetUpdated(Particle particle, byte value)
     {
-        
         //WorldChunk chunk = _worldManager.GetChunkFromParticlePosition(particle.positionX, particle.positionY);
         WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
-        if(chunk == null)
-            return;
-        
+        if (chunk == null) return;
+
         chunk.SetParticleUpdated(particle.localPositionX, particle.localPositionY, value);
     }
 
@@ -480,12 +429,13 @@ public class ParticleLogic : MonoBehaviour
     {
         return ParticleManager.GetParticleData(type);
     }
-    
+
     #endregion
 
     private Vector2Int GetWorldPos(Vector2 pos)
     {
-        int maxIndexX = (_worldManager.worldSize.x / _worldManager.chunkSize.x) - 1; // minus 1 because the index starts as one
+        int maxIndexX =
+            (_worldManager.worldSize.x / _worldManager.chunkSize.x) - 1; // minus 1 because the index starts as one
         int maxIndexY = (_worldManager.worldSize.y / _worldManager.chunkSize.y) - 1;
         WorldChunk minChunk = _worldManager.GetChunk(0, 0);
         WorldChunk maxChunk = _worldManager.GetChunk(maxIndexX, maxIndexY);

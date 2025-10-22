@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf464fbb740946c4983b657d25e59c8b, type: 3}
+  m_Name: LoggerConfig
+  m_EditorClassIdentifier: 
+  EnableAllLogs: 1
+  EditorOnly: 1
+  categories:
+  - Category: 9
+    Enabled: 1
+    TagColor: {r: 0.407032, g: 0, b: 1, a: 1}
+    Emoji: "\u2753"
+  - Category: 10
+    Enabled: 1
+    TagColor: {r: 0.20992625, g: 1, b: 0, a: 1}
+    Emoji: "\u2753"
