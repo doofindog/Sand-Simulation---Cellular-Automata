@@ -13,8 +13,8 @@
             Error = 6,
             Warning = 7,
             Other = 8,
-            WorldChunk = 9,
-            ParticleLogic = 10,
+            ParticleLogic = 9,
+            WorldChunk = 10,
         }
     }
 }
