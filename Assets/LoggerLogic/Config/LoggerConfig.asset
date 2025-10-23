@@ -17,10 +17,14 @@ MonoBehaviour:
   DisableLogSystem: 0
   categories:
   - Category: 9
-    Enabled: 1
+    Enabled: 0
     TagColor: {r: 1, g: 0.7817018, b: 0, a: 1}
     Emoji: "\U0001F7E8"
   - Category: 10
-    Enabled: 1
+    Enabled: 0
     TagColor: {r: 0.9096808, g: 0.28773582, b: 1, a: 1}
     Emoji: "\U0001F7EA"
+  - Category: 11
+    Enabled: 1
+    TagColor: {r: 1, g: 0, b: 0.6546898, a: 1}
+    Emoji: "\u2753"

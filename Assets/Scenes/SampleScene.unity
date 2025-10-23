@@ -341,7 +341,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticleLogic
   _selectedType: 2
-  m_updateTime: 1
+  m_updateTime: 0.01
   m_chunkIndex: 0
   m_debug_addParticleInCenter: 0
 --- !u!1 &1200604834

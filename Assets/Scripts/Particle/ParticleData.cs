@@ -15,7 +15,6 @@ public class ParticleData : ScriptableObject
 
     [Header("Passthrough")]
     public float resistance;
-    public int dispersalRate;
 }
 
 

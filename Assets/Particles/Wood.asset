@@ -16,4 +16,3 @@ MonoBehaviour:
   colour: {r: 0.38679248, g: 0.23946922, b: 0.13683696, a: 1}
   movements: []
   resistance: 2
-  dispersalRate: 0

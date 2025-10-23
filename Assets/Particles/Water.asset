@@ -24,5 +24,4 @@ MonoBehaviour:
   - moveDir: 9
     distance: 1
     chance: 1
-  resistance: 0
-  dispersalRate: 0
+  resistance: 1

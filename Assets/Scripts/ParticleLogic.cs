@@ -65,7 +65,7 @@ public class ParticleLogic : MonoBehaviour
             if (chunk == null || !chunk.chunkActive) continue;
 
             //=== Update Each Particle ===
-            CustomLogger.Log("Processing Chunk: " + i, CustomLogger.LogCategory.ParticleLogic);
+            // CustomLogger.Log("Processing Chunk: " + i, CustomLogger.LogCategory.ParticleLogic);
             var particles = chunk.GetParticles();
             for (int j = 0; j < particles.Length; j++)
             {
@@ -112,7 +112,7 @@ public class ParticleLogic : MonoBehaviour
     {
         //Vector2Int pixelPos = new Vector2Int(15, 16);
         int id = m_nextParticleId++;
-        CustomLogger.Log($"Adding Particle at ({pixelPos.x}, {pixelPos.y}) with ID : {id}", CustomLogger.LogCategory.ParticleLogic);
+        // CustomLogger.Log($"Adding Particle at ({pixelPos.x}, {pixelPos.y}) with ID : {id}", CustomLogger.LogCategory.ParticleLogic);
         if (CheckPositionBounds(pixelPos.x, pixelPos.y))
         {
             //Get Chunk from the world position.
@@ -170,7 +170,7 @@ public class ParticleLogic : MonoBehaviour
                     break;
             }
             Profiler.BeginSample("Move Particle");
-            CustomLogger.Log($"Particle ID : {particle.id} | ({particle.localPositionX}, {particle.localPositionY}) | Processing Movement -> {movement} -> [{dir}]", CustomLogger.LogCategory.ParticleLogic);
+            // CustomLogger.Log($"Particle ID : {particle.id} | ({particle.localPositionX}, {particle.localPositionY}) | Processing Movement -> {movement} -> [{dir}]", CustomLogger.LogCategory.ParticleLogic);
             particleMoved = TryMoveParticleInDirection(particle, dir, movement.distance);
             if (particleMoved)
             {
@@ -179,7 +179,7 @@ public class ParticleLogic : MonoBehaviour
                 break;
             }
             
-            CustomLogger.Log($"Particle ID : {particle.id} : Could not move in Direction -> [{dir}] ", CustomLogger.LogCategory.ParticleLogic); 
+            // CustomLogger.Log($"Particle ID : {particle.id} : Could not move in Direction -> [{dir}] ", CustomLogger.LogCategory.ParticleLogic); 
             Profiler.EndSample();
             
             WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
@@ -314,14 +314,11 @@ public class ParticleLogic : MonoBehaviour
         int x = particle.positionX;
         int y = particle.positionY;
         Vector2Int neighbourPos = new Vector2Int(x, y) + (dir);
-        //if (!CheckPositionBounds(neighbourPos.x, neighbourPos.y) || ContainsParticle(neighbourPos.x, neighbourPos.y)) return false;
 
-        if (!CheckPositionBounds(neighbourPos.x, neighbourPos.y) || ContainsParticle(neighbourPos.x, neighbourPos.y))
+        if (!CheckPositionBounds(neighbourPos.x, neighbourPos.y) || !CheckResistanceInDirection(particle, dir))
             return false;
 
-        Particle neighbourParticle = _worldManager.GetParticle(neighbourPos.x, neighbourPos.y);
-
-        return neighbourParticle.type != particle.type;
+        return true;
     }
 
     private void MoveParticleInDirection(Particle particle, Vector2Int dir)
@@ -340,7 +337,7 @@ public class ParticleLogic : MonoBehaviour
 
         //currentChunk.isActiveNextFrame = neighbourChunk.isActiveNextFrame = true;
 
-        CustomLogger.Log($"Particle ID : {particle.id} :  Moving to {neighbourParticle.localPositionX} {neighbourParticle.localPositionY}", CustomLogger.LogCategory.ParticleLogic);
+        // CustomLogger.Log($"Particle ID : {particle.id} :  Moving to {neighbourParticle.localPositionX} {neighbourParticle.localPositionY}", CustomLogger.LogCategory.ParticleLogic);
     }
 
     #endregion
@@ -366,12 +363,6 @@ public class ParticleLogic : MonoBehaviour
     private bool CheckResistanceInDirection(Particle particle, Vector2Int dir)
     {
         Vector2Int neighbourPos = particle.Position + dir;
-
-        if (!CheckPositionBounds(neighbourPos.x, neighbourPos.y))
-        {
-            return false;
-        }
-
         Particle neighbourParticle = _worldManager.GetParticle(neighbourPos.x, neighbourPos.y);
 
         if (particle.type == neighbourParticle.type)
@@ -379,15 +370,19 @@ public class ParticleLogic : MonoBehaviour
             return false;
         }
 
+      
         ParticleData particleData = GetParticleData(particle.type);
-        ParticleData neighbourParticleData = GetParticleData(neighbourParticle.type);
-        if (particleData.resistance > neighbourParticleData.resistance)
-        {
-            float chance = Random.Range(0.0f, 1.0f);
-            return chance > 0.3f;
-        }
-
-        return false;
+        WorldChunk neighbourChunk = _worldManager.GetChunk(neighbourParticle.chunkId);
+        ParticleType claimedNeighbourParticleType = neighbourChunk.GetClaimedTypeAtIndex(neighbourParticle.index);
+        ParticleData neighbourParticleData = GetParticleData(claimedNeighbourParticleType);
+        
+        bool canResist = particleData.resistance > neighbourParticleData.resistance;
+        CustomLogger.Log($"Particle ID : {particle.id} : Checking Resistance in Direction -> [{dir}] |" +
+                         $"{particle.type} with {neighbourParticle.type} |" +
+                         $"({particle.localPositionX}, {particle.localPositionY}) |" +
+                         $"{particleData.resistance} > {neighbourParticleData.resistance} |" +
+                         $" ({neighbourParticle.localPositionX}, {neighbourParticle.localPositionY} ) -> {canResist}", CustomLogger.LogCategory.ResistanceCheck);
+        return canResist;
     }
 
     private void SwapParticleInDirection(Particle particle, Vector2Int dir)

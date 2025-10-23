@@ -24,15 +24,4 @@ public struct Particle
     public int Index => index;
 }
 
-public struct ParticleClamInfo
-{
-    public int chunkId;
-    public int index;
-}
-
-public struct ParticleWriteInfo
-{
-    public ParticleClamInfo[] particle;
-}
-
 

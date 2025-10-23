@@ -15,6 +15,7 @@
             Other = 8,
             ParticleLogic = 9,
             WorldChunk = 10,
+            ResistanceCheck = 11,
         }
     }
 }
