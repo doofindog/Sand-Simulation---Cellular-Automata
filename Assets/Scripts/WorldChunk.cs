@@ -12,11 +12,8 @@ public class WorldChunk : MonoBehaviour
     private Color m_defaultColor;
     private Texture2D m_worldTexture;
     [SerializeField] private Particle[] m_readParticle;
-    [SerializeField] private Particle[] m_writeParticle;
-    [SerializeField] private ParticleType[] m_clamInfos;
-    private Particle[] m_modifiedParticles;
+    [SerializeField] private Dictionary<int, List<int>> m_claimIntents;
     private Color[] m_chuckColour;
-    private WorldChunk[] m_neighbourChunks;
     private Vector2Int m_chunkSize;
     private Camera m_mainCamera;
     
@@ -25,6 +22,16 @@ public class WorldChunk : MonoBehaviour
     public Sprite sprite;
     public bool chunkActive;
     public bool isActiveNextFrame;
+
+    public bool IsActiveNextFrame
+    {
+        get => isActiveNextFrame;
+        set
+        {
+            CustomLogger.Log($"Setting IsActiveNextFrame to {value}", CustomLogger.LogCategory.WorldChunk);
+            isActiveNextFrame = value;
+        }
+    }
     
     public int ChunkId => m_chunkId;
     public Vector2Int ChunkPosition => m_chunkPosition;
@@ -50,8 +57,7 @@ public class WorldChunk : MonoBehaviour
         int len = chunkSize.x * chunkSize.y;
         
         m_readParticle = new Particle[len];
-        m_writeParticle = new Particle[len];
-        m_clamInfos = new ParticleType[len];
+        m_claimIntents = new Dictionary<int, List<int, int>>();
         m_chuckColour = new Color[len];
         
         Array.Clear(m_readParticle, 0, len);
@@ -84,10 +90,10 @@ public class WorldChunk : MonoBehaviour
 
                 m_chuckColour[index] = particle.colour;
                 m_readParticle[index] = particle;
-                WriteToParticleIndex(index, particle);
             } 
         }
         
+        ClearClaims();
         UpdateTexture();
     }
 
@@ -112,15 +118,6 @@ public class WorldChunk : MonoBehaviour
     {
         Particle particle = GetParticleAtIndex(index);
         return particle.type != ParticleType.Air;
-    }
-    
-    public void AddParticle(int index, ParticleType type, int id)
-    {
-        Particle particle = m_readParticle[index];
-        particle.type = type;
-        particle.id = id;
-        
-        WriteToParticleIndex(index, particle);
     }
 
     public void UpdateTexture()
@@ -151,54 +148,29 @@ public class WorldChunk : MonoBehaviour
         m_readParticle[index] = particle;
     }
 
-    public void ClearWrite()
+    public void ClearClaims()
     {
-        for(int i = 0; i < m_writeParticle.Length; i++)
-        {
-            Particle particle = m_writeParticle[i];
-            particle.type = ParticleType.Air;
-            particle.id = 0;
-            
-            m_writeParticle[i] = particle;
-            m_clamInfos[i] = ParticleType.Air;
-        }
+        m_claimIntents.Clear();
     }
 
     public void SwapReadWrite()
     {
-        // CustomLogger.Log("Swapping Read and Write", CustomLogger.LogCategory.WorldChunk);
-        (m_readParticle, m_writeParticle) = (m_writeParticle, m_readParticle);
-
-        for (int i = 0; i < m_readParticle.Length; i++)
-        {
-            int readIndex = m_readParticle[i].index;
-            int writeIndex = m_writeParticle[i].index;
-            
-            int readX = m_readParticle[i].localPositionX;
-            int readY = m_readParticle[i].localPositionY;
-            
-            int writeX = m_writeParticle[i].localPositionX;
-            int writeY = m_writeParticle[i].localPositionY;
-            
-            ParticleType readType = m_readParticle[i].type;
-            ParticleType writeType = m_writeParticle[i].type;
-            
-            int readId = m_readParticle[i].id;
-            int writeId = m_writeParticle[i].id;
-            
-            // CustomLogger.Log($"Swaping -> {readIndex} -> {writeIndex} | ({readX},{readY}) -> ({writeX},{writeY}) | {readType} -> {writeType} | {{readId}} -> {{writeId}}", CustomLogger.LogCategory.WorldChunk);
-        }
+        // // CustomLogger.Log("Swapping Read and Write", CustomLogger.LogCategory.WorldChunk);
+        // for (int i = 0; i < m_readParticle.Length; i++)
+        // {
+        //     ref Particle particle = ref m_readParticle[i];
+        //     particle.type = m_clamInfos[i];
+        // }
     }
 
-    public void WriteToParticleIndex(int index, Particle updatedParticle)
+    public void ClaimParticle(int currentIndex, int targetIndex)
     {
-        m_clamInfos[index] = updatedParticle.ParticleType;
-        m_writeParticle[index] = updatedParticle;
-        // CustomLogger.Log($"Updating Particle {updatedParticle.index} | ({updatedParticle.localPositionX}, {updatedParticle.localPositionY}) | {updatedParticle.ParticleType}) ", CustomLogger.LogCategory.WorldChunk);
+        m_claimIntents[targetIndex] ??= new List<int>();
+        m_claimIntents[targetIndex].Add(currentIndex);
     }
 
-    public ParticleType GetClaimedTypeAtIndex(int index)
+    public int[] GetClaimsAtIndex(int index)
     {
-        return m_clamInfos[index];
+        return m_claimIntents[index].ToArray();
     }
 }
