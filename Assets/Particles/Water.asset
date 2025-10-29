@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: Water
   m_EditorClassIdentifier: 
   particleType: 1
-  colour: {r: 0.31372374, g: 0.6926832, b: 0.8867924, a: 1}
+  colour:
+  - {r: 0.435849, g: 0.8595409, b: 1, a: 1}
+  - {r: 0.352, g: 0.838, b: 1, a: 1}
+  - {r: 0.116999984, g: 0.77925, b: 1, a: 1}
   movements:
   - moveDir: 5
     distance: 1
@@ -21,7 +24,5 @@ MonoBehaviour:
   - moveDir: 11
     distance: 1
     chance: 1
-  - moveDir: 9
-    distance: 1
-    chance: 1
-  resistance: 1
+  moveResistance: 1
+  flameResistance: 0

@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: Sand
   m_EditorClassIdentifier: 
   particleType: 2
-  colour: {r: 0.754717, g: 0.59744275, b: 0.16731933, a: 1}
+  colour:
+  - {r: 1, g: 0.9384272, b: 0.2245282, a: 1}
+  - {r: 0.955, g: 0.89507836, b: 0.21347058, a: 1}
+  - {r: 0.90900004, g: 0.8519647, b: 0.20318823, a: 1}
   movements:
   - moveDir: 5
     distance: 1
@@ -21,4 +24,11 @@ MonoBehaviour:
   - moveDir: 9
     distance: 1
     chance: 1
-  resistance: 1
+  - moveDir: 6
+    distance: 1
+    chance: 1
+  - moveDir: 4
+    distance: 1
+    chance: 1
+  moveResistance: 2
+  flameResistance: 0

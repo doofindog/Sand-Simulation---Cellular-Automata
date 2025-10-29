@@ -4,7 +4,6 @@ using UnityEngine;
 [System.Serializable]
 public struct Particle
 {
-    public int id;
     public int chunkId;
     public int index;
     
@@ -15,13 +14,40 @@ public struct Particle
     public int localPositionY;
     
     public ParticleType type;
-    public byte updated;
-    public Color32 colour;
+    public ParticleFlags flags;
+    
+    public Color color;
     
     public Vector2Int Position => new Vector2Int(positionX, positionY);
     public ParticleType ParticleType => type;
-    public bool Updated => updated == 1;
     public int Index => index;
+
+    public Particle Default()
+    {
+        return new Particle()
+        {
+            chunkId = chunkId,
+            index = index,
+            positionX = positionX,
+            positionY = positionY,
+            localPositionX = localPositionX,
+            localPositionY = localPositionY,
+            type = type,
+        };
+    }
+
+    [Flags]
+    public enum ParticleFlags
+    {
+        None = 0,
+        Update = 1 << 0
+    }
+    
+    public enum MovementType
+    {
+        Replace,
+        Swap,
+    }
 }
 
 

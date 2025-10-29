@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Azen.Logger;
@@ -11,8 +12,9 @@ public class WorldChunk : MonoBehaviour
     private Vector2Int m_chunkPosition;
     private Color m_defaultColor;
     private Texture2D m_worldTexture;
-    [SerializeField] private Particle[] m_readParticle;
-    [SerializeField] private Dictionary<int, List<int>> m_claimIntents;
+    [SerializeField] private Particle[] m_mainGrid;
+    [SerializeField] private Particle[] m_processGrid;
+    [SerializeField] private BitArray m_flags;
     private Color[] m_chuckColour;
     private Vector2Int m_chunkSize;
     private Camera m_mainCamera;
@@ -28,7 +30,7 @@ public class WorldChunk : MonoBehaviour
         get => isActiveNextFrame;
         set
         {
-            CustomLogger.Log($"Setting IsActiveNextFrame to {value}", CustomLogger.LogCategory.WorldChunk);
+            //CustomLogger.Log($"Setting IsActiveNextFrame to {value}", CustomLogger.LogCategory.WorldChunk);
             isActiveNextFrame = value;
         }
     }
@@ -56,18 +58,20 @@ public class WorldChunk : MonoBehaviour
         
         int len = chunkSize.x * chunkSize.y;
         
-        m_readParticle = new Particle[len];
-        m_claimIntents = new Dictionary<int, List<int, int>>();
+        m_mainGrid = new Particle[len];
+        m_processGrid = new Particle[len];
+        m_flags = new BitArray(len, false);
         m_chuckColour = new Color[len];
         
-        Array.Clear(m_readParticle, 0, len);
+        Array.Clear(m_mainGrid, 0, len);
 
         m_mainCamera = Camera.main;
         if (m_mainCamera == null)
         {
             return;
         }
-        
+
+        m_defaultColor = Color.white;
         for(int y = 0; y < chunkSize.y; y++)
         {
             int yIndex = y + m_chunkPosition.y * chunkSize.y;
@@ -75,7 +79,6 @@ public class WorldChunk : MonoBehaviour
             {
                 int xIndex = x + m_chunkPosition.x * chunkSize.x;
                 int index = x + y * chunkSize.x;
-                
 
                 Particle particle = new Particle
                 {
@@ -85,27 +88,34 @@ public class WorldChunk : MonoBehaviour
                     positionY = yIndex,
                     localPositionX = x,
                     localPositionY = y,
-                    type = ParticleType.Air
+                    type = ParticleType.Air,
+                    color = m_defaultColor
                 };
 
-                m_chuckColour[index] = particle.colour;
-                m_readParticle[index] = particle;
+                m_chuckColour[index] = m_defaultColor; 
+                m_mainGrid[index] = particle;
+                m_processGrid[index] = particle;
             } 
         }
         
-        ClearClaims();
+        ClearParticles();
         UpdateTexture();
     }
 
     private Particle GetParticleAtIndex(int x, int y)
     {
         int index = x + y * m_chunkSize.x; 
-        return m_readParticle[index];
+        return m_mainGrid[index];
     }
     
     public Particle GetParticleAtIndex(int index)
     {
-        return m_readParticle[index];
+        return m_mainGrid[index];
+    }
+    
+    public Particle GetWriteParticleAtIndex(int index)
+    {
+        return m_processGrid[index];
     }
 
     public bool ContainsParticle(int x, int y)
@@ -122,10 +132,12 @@ public class WorldChunk : MonoBehaviour
 
     public void UpdateTexture()
     {
-        for (int i = 0; i < m_readParticle.Length; i++)
+        for (int i = 0; i < m_mainGrid.Length; i++)
         {
-            ParticleData particleData = ParticleManager.GetParticleData(m_readParticle[i].type);
-            m_chuckColour[i] = particleData.colour;
+            if(!m_flags[i])
+                continue;
+            
+            m_chuckColour[i] = m_mainGrid[i].color;
         }
         
         m_worldTexture.SetPixels(m_chuckColour);
@@ -137,40 +149,49 @@ public class WorldChunk : MonoBehaviour
 
     public Particle[] GetParticles()
     {
-        return m_readParticle;
+        return m_mainGrid;
     }
 
     public void SetParticleUpdated(int particlePositionX, int particlePositionY, byte value)
     {
         int index = particlePositionX + particlePositionY * m_chunkSize.x;
-        Particle particle = m_readParticle[index];
-        particle.updated = value;
-        m_readParticle[index] = particle;
+        Particle particle = m_mainGrid[index];
+        m_mainGrid[index] = particle;
     }
 
-    public void ClearClaims()
+    public void ClearParticles()
     {
-        m_claimIntents.Clear();
+        for (int i = 0; i < m_processGrid.Length; i++)
+        {
+            m_processGrid[i] = m_processGrid[i].Default();
+        }
+        
+        m_flags.SetAll(false);
     }
 
     public void SwapReadWrite()
     {
-        // // CustomLogger.Log("Swapping Read and Write", CustomLogger.LogCategory.WorldChunk);
-        // for (int i = 0; i < m_readParticle.Length; i++)
-        // {
-        //     ref Particle particle = ref m_readParticle[i];
-        //     particle.type = m_clamInfos[i];
-        // }
+        for (int i = 0; i < m_mainGrid.Length; i++)
+        {
+            if (m_flags[i] == false)
+            {
+                continue;
+            }
+            
+            m_mainGrid[i] = m_processGrid[i];
+        }
+        
     }
 
-    public void ClaimParticle(int currentIndex, int targetIndex)
+    public void SetParticle(int index, ParticleType type, Color color)
     {
-        m_claimIntents[targetIndex] ??= new List<int>();
-        m_claimIntents[targetIndex].Add(currentIndex);
+        m_processGrid[index].type = type;
+        m_processGrid[index].color = color;
+        m_flags[index] = true;
     }
 
-    public int[] GetClaimsAtIndex(int index)
+    public bool GetFlag(int index)
     {
-        return m_claimIntents[index].ToArray();
+        return m_flags[index];
     }
 }

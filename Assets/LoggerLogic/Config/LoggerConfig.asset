@@ -25,6 +25,6 @@ MonoBehaviour:
     TagColor: {r: 0.9096808, g: 0.28773582, b: 1, a: 1}
     Emoji: "\U0001F7EA"
   - Category: 11
-    Enabled: 1
+    Enabled: 0
     TagColor: {r: 1, g: 0, b: 0.6546898, a: 1}
     Emoji: "\u2753"

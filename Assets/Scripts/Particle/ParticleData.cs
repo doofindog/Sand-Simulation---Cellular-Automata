@@ -8,13 +8,21 @@ public class ParticleData : ScriptableObject
 {
     [Tooltip("Type of Particle")]
     public ParticleType particleType;
-    public Color colour;
+    public Color[] colour;
     
     [Header("Movement")]
     [FormerlySerializedAs("moveChecks")] [SerializeField] public ParticleMovement[] movements;
 
-    [Header("Passthrough")]
-    public float resistance;
+    
+    public float moveResistance;
+    public float flameResistance;
+    
+
+    public Color GetColor()
+    {
+        int colorIndex = Random.Range(0, colour.Length);
+        return colour[colorIndex];
+    }
 }
 
 

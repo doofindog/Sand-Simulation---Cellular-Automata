@@ -4,14 +4,17 @@ using Azen.Logger;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
 public class ParticleLogic : MonoBehaviour
 {
+    private static readonly Color NoneColor = new Color(0, 0, 0, 0);
+    
     [FormerlySerializedAs("_selectedType")] [SerializeField] private ParticleType m_selectedType = ParticleType.Sand;
     private KeyCode[] inputKeys;
-    private WorldManager _worldManager;
+    private WorldManager m_worldManager;
     private WorldChunk[] m_chunks;
     private Camera m_camera;
     private float m_timer;
@@ -31,8 +34,8 @@ public class ParticleLogic : MonoBehaviour
             KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9
         };
 
-        _worldManager = worldManager;
-        m_chunks = _worldManager.GetAllChunks();
+        m_worldManager = worldManager;
+        m_chunks = m_worldManager.GetAllChunks();
         m_camera = Camera.main;
     }
 
@@ -70,79 +73,109 @@ public class ParticleLogic : MonoBehaviour
     
     private void ReadMouseInput()
     {
-        if (Input.GetMouseButton(0) || Input.GetMouseButtonDown(1))
+        bool increaseSize = Input.GetKey(KeyCode.LeftShift);
+        bool click = Input.GetMouseButton(0) || Input.GetMouseButtonDown(1);
+        if (!click) return;
+
+        Vector2 mouseWorldPosition = m_camera.ScreenToWorldPoint(Input.mousePosition);
+        Vector2Int center = GetWorldPos(mouseWorldPosition);
+
+        if (!CheckPositionBounds(center.x, center.y)) return;
+
+        if (!increaseSize)
         {
-            Vector2 mouseWorldPosition = m_camera.ScreenToWorldPoint(Input.mousePosition);
-            Vector2Int pixelPos = GetWorldPos(mouseWorldPosition);
-            
-            TryAddParticleAtPosition(pixelPos);
-        }  
+            // Single pixel
+            PlaceAtWorld(center.x, center.y, m_selectedType);
+            return;
+        }
+
+        // Filled circle brush
+        const int radius = 4;               // <- adjust if you want a bigger/smaller circle
+        int r2 = radius * radius;
+
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                if (dx * dx + dy * dy > r2) continue;
+
+                int x = center.x + dx;
+                int y = center.y + dy;
+
+                if (!CheckPositionBounds(x, y)) continue;
+
+                PlaceAtWorld(x, y, m_selectedType);
+            }
+        }
     }
-    
-    private void TryAddParticleAtPosition(Vector2Int pixelPos)
+
+// Helper that finds the right chunk/index for a world-space pixel and adds the element there.
+    private void PlaceAtWorld(int worldX, int worldY, ParticleType type)
     {
-        if (CheckPositionBounds(pixelPos.x, pixelPos.y) ==  false) return;
-        
-        WorldChunk chunk = _worldManager.GetChunkFromParticlePosition(pixelPos.x, pixelPos.y);
-        int pixelPositionX = pixelPos.x % _worldManager.chunkSize.x;
-        int pixelPositionY = pixelPos.y % _worldManager.chunkSize.y;
-        int index = pixelPositionX + pixelPositionY * _worldManager.chunkSize.x;
-        
-        // Claim Index Regardless
-        chunk.ClaimParticle(index, m_selectedType);
-        chunk.IsActiveNextFrame = true;
+        WorldChunk chunk = m_worldManager.GetChunkFromParticlePosition(worldX, worldY);
+        if (chunk == null) return;
+
+        int localX = worldX % m_worldManager.chunkSize.x;
+        int localY = worldY % m_worldManager.chunkSize.y;
+        int index = localX + localY * m_worldManager.chunkSize.x;
+
+        Particle particle = chunk.GetParticleAtIndex(index);
+        AddElement(particle, type);
     }
     
+    private bool flip = false;
     private void ProcessChunks()
     {
         // === Loop Through All Chunks ===
         for (int i = 0; i < m_chunks.Length; i++)
         {
             WorldChunk chunk = m_chunks[i];
-            CustomLogger.Log("Chunk is Active -> " + m_chunks[i].chunkActive, CustomLogger.LogCategory.WorldChunk);
             if (chunk == null || !chunk.chunkActive) continue;
 
-            //=== Update Each Particle ===
-            // CustomLogger.Log("Processing Chunk: " + i, CustomLogger.LogCategory.ParticleLogic);
             var particles = chunk.GetParticles();
-            for (int j = 0; j < particles.Length; j++)
+
+            if (!flip)
             {
-                //=== Move Particle | Wake Neighbour Chunks if Required | Write Particle To Buffer. ===
-                UpdateParticle(particles[j]);
+                // Normal left-to-right iteration
+                for (int j = 1; j < particles.Length; j += 2)
+                    UpdateParticle(particles[j]);
+
+                for (int j = 0; j < particles.Length; j += 2)
+                    UpdateParticle(particles[j]);
+            }
+            else
+            {
+                // Flipped right-to-left iteration
+                for (int j = particles.Length - 2; j >= 0; j -= 2)
+                    UpdateParticle(particles[j]);
+
+                for (int j = particles.Length - 1; j >= 0; j -= 2)
+                    UpdateParticle(particles[j]);
             }
 
             chunk.chunkActive = false;
         }
+
+        // Flip direction next frame
+        flip = !flip;
     }
 
-    private void WriteChunk()
-    {
-        foreach (WorldChunk chunk in m_chunks)
-        {
-            if (chunk == null || !chunk.isActiveNextFrame) continue;
-            
-            //Swap Read and Write Buffers and Update Texture.
-            chunk.SwapReadWrite();
-            chunk.UpdateTexture();
-
-            //Clear Write Buffer.
-            chunk.ClearClaims();
-
-            chunk.chunkActive = chunk.isActiveNextFrame;
-            chunk.IsActiveNextFrame = false;
-        }
-    }
     
     private void UpdateParticle(Particle particle)
     {
         ParticleType particleType = particle.type;
         ParticleMovement[] movements = GetParticleMovements(particleType);
+        if (movements == null)
+        {
+            return;
+        }
 
         //TODO : Instead of Move Particle, Add A Particle variable called Processed Particle and Assign it to back then write it.
         Vector2Int dir = Vector2Int.zero;
-        bool particleMoved = false;
         foreach (ParticleMovement movement in movements)
         {
+            //CustomLogger.Log($"({particle.localPositionX}, {particle.localPositionY}) Particle Movement: " + movement.moveDir, CustomLogger.LogCategory.ParticleLogic);
+            
             switch (movement.moveDir)
             {
                 case ParticleMovement.MoveDirection.Up:
@@ -173,26 +206,42 @@ public class ParticleLogic : MonoBehaviour
                     dir = new Vector2Int((Random.value < 0.5f) ? -1 : 1, 1);
                     break;
             }
-            
-            particleMoved = TryMoveParticleInDirection(particle, dir, movement.distance);
-            if (particleMoved)
+
+            if (TryMoveParticleInDirection(particle, dir, movement.distance))
             {
-                TryActivateNeighbourChunk(particle);
+                //TryActivateNeighbourChunk(particle);
                 break;
             }
         }
+    }
 
-        // === If Particle has not moved, Let Current Particle Try Claim index ===
-        if (!particleMoved)
+    private void WriteChunk()
+    {
+        foreach (WorldChunk chunk in m_chunks)
         {
-            CustomLogger.Log("Particle has not moved", CustomLogger.LogCategory.ParticleLogic);
-            WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
-            int chunkID = chunk.ChunkId;
-            int particleIndex = particle.index;
+            if (chunk == null || !chunk.isActiveNextFrame) continue;
             
-            TryClaimParticle(chunkID, particleIndex, particle.type);
+            //Swap Read and Write Buffers and Update Texture.
+            chunk.SwapReadWrite();
+            chunk.UpdateTexture();
+
+            //Clear Write Buffer.
+            chunk.ClearParticles();
+
+            chunk.chunkActive = chunk.isActiveNextFrame;
+            chunk.IsActiveNextFrame = false;
         }
     }
+    
+    
+    
+    
+    
+    //---------------------------------------------------------------------------------//
+    
+    
+    
+    
     
     #region Movement Logic
     
@@ -212,14 +261,14 @@ public class ParticleLogic : MonoBehaviour
     
     private void TryActivateNeighbourChunk(Particle particle)
     {
-        WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
+        WorldChunk chunk = m_worldManager.GetChunk(particle.chunkId);
         chunk.IsActiveNextFrame = true;
 
         int x = particle.localPositionX;
         int y = particle.localPositionY;
 
         // === If particle has been updated in the border. Activate its neighbor chunk ===
-        if (x == 0 || y == 0 || x == _worldManager.worldSize.x - 1 || y == _worldManager.worldSize.y - 1)
+        if (x == 0 || y == 0 || x == m_worldManager.worldSize.x - 1 || y == m_worldManager.worldSize.y - 1)
         {
             Border border = GetBorder(particle);
 
@@ -249,56 +298,48 @@ public class ParticleLogic : MonoBehaviour
 
     private bool TryMoveParticleInDirection(Particle particle, Vector2Int dir, int distance)
     {
-        CustomLogger.Log("Trying to move particle in direction: " + dir + " distance: " + distance, CustomLogger.LogCategory.ParticleLogic);
-        
-        bool movedAtLeastOneCell = false;
-        
+        //CustomLogger.Log("Trying to move particle in direction: " + dir + " distance: " + distance, CustomLogger.LogCategory.ParticleLogic);
         int startX = particle.positionX;
         int startY = particle.positionY;
         
-        for (int step = 1; step <= distance; step++)
-        {
-            //Neighbour Position;
-            int nx = startX + dir.x * step;
-            int ny = startY + dir.y * step;
+        int nx = startX + dir.x * distance;
+        int ny = startY + dir.y * distance;
+        
 
-            if (!CheckPositionBounds(nx, ny))
+   
+        if (CheckPositionBounds(nx, ny))
+        {
+            //CustomLogger.Log("Position Bounds Check Passed", CustomLogger.LogCategory.ParticleLogic);
+            
+            Profiler.BeginSample("Start Particle Movement Check");
+            WorldChunk targetChunk = m_worldManager.GetChunkFromParticlePosition(nx, ny);
+        
+            int pixelPositionX = nx % WorldManager.ChunkSizeX;
+            int pixelPositionY = ny % WorldManager.ChunkSizeY;;
+            int index = pixelPositionX + pixelPositionY * WorldManager.ChunkSizeX;
+            bool targetFlagged = targetChunk.GetFlag(index);
+            
+            Particle targetParticle = targetFlagged ? targetChunk.GetWriteParticleAtIndex(index) : targetChunk.GetParticleAtIndex(index);
+            ParticleType targetType = targetParticle.type;
+            Profiler.EndSample();
+            if (CheckResistance(particle.type, targetType))
             {
-                break;
+                //CustomLogger.Log($"({particle.localPositionX}, {particle.localPositionY}) : Resistance Check Passed", CustomLogger.LogCategory.ParticleLogic);
+                SwapParticle(particle, targetParticle);
+                return true;
             }
             
-            Particle targetParticle = _worldManager.GetParticle(nx, ny);
-            int targetChunkId = targetParticle.chunkId;
-            int targetIndex   = targetParticle.index;
-
-            if (!TryClaimParticle(targetChunkId, targetIndex, particle.type))
-            {
-                CustomLogger.Log("Cannot Claim Particle", CustomLogger.LogCategory.ParticleLogic);
-                break;
-            }
-
-            movedAtLeastOneCell = true;
+            //CustomLogger.Log($"({particle.localPositionX}, {particle.localPositionY}) -> {dir} : Resistance Check Failed", CustomLogger.LogCategory.ParticleLogic);
         }
 
-        return movedAtLeastOneCell;
-    }
-    
-    private bool TryClaimParticle(int chunkId, int index, ParticleType type)
-    {
-        ParticleType currentType = _worldManager.GetClaimedTypeByIndex(chunkId, index);
-        
-        if (!CheckResistanceInDirection(type, currentType))
-            return false;
-        
-        WorldChunk chunk = _worldManager.GetChunk(chunkId);
-        chunk.ClaimParticle(index, type);
-        return true;
+      
+        return false;
     }
 
     private void WakeUpChunkInDir(Vector2Int position, Vector2Int direction)
     {
         Vector2Int chunkPosition = position + direction;
-        WorldChunk chunk = _worldManager.GetChunk(chunkPosition.x, chunkPosition.y);
+        WorldChunk chunk = m_worldManager.GetChunk(chunkPosition.x, chunkPosition.y);
         if (chunk != null)
         {
             chunk.IsActiveNextFrame = true;
@@ -310,8 +351,8 @@ public class ParticleLogic : MonoBehaviour
     {
         Border border = Border.None;
 
-        int width = _worldManager.chunkSize.x;
-        int height = _worldManager.chunkSize.y;
+        int width = m_worldManager.chunkSize.x;
+        int height = m_worldManager.chunkSize.y;
         int x = particle.localPositionX;
         int y = particle.localPositionY;
 
@@ -337,25 +378,66 @@ public class ParticleLogic : MonoBehaviour
 
         return border;
     }
+
+    private void SwapParticle(Particle particleA, Particle particleB)
+    {
+        Profiler.BeginSample("Swap Particles");
+        AddElement(particleA, particleB.type, particleB.color);
+        AddElement(particleB, particleA.type, particleA.color);
+        Profiler.EndSample();
+    }
+
+
+    private void AddElement(Particle particle, ParticleType type, Color color = default)
+    {
+        int chunkID = particle.chunkId;
+        WorldChunk chunk = m_worldManager.GetChunk(chunkID);
+
+        if (color == NoneColor)
+        {
+            ParticleData data = ParticleManager.GetParticleData(type);
+            color = data.GetColor();
+        }
+        
+        chunk.SetParticle(particle.index, type, color);
+        chunk.IsActiveNextFrame = true;
+    }
     
     #endregion
 
     #region Particle Checks
     
-    private bool CheckResistanceInDirection(ParticleType currentType, ParticleType neighbourType)
+    private bool CheckResistance(ParticleType currentType, ParticleType neighbourType)
     {
+        Profiler.BeginSample("Check Resistance");
+        
         ParticleData particleData = GetParticleData(currentType);
         ParticleData neighbourParticleData = GetParticleData(neighbourType);
-        float currentResistance = particleData.resistance;
-        float neighbourResistance = neighbourParticleData.resistance;
+        float currentResistance = particleData.moveResistance;
+        float neighbourResistance = neighbourParticleData.moveResistance;
+        
+        Profiler.EndSample();
         
         return currentResistance > neighbourResistance;
     }
 
+    private bool CheckConsume(ParticleType currentType, ParticleType neighbourType)
+    {
+        ParticleData particleData = GetParticleData(currentType);
+        ParticleData neighbourParticleData = GetParticleData(neighbourType);
+        
+        // float currentResistance = particleData.consumeValue;
+        // float neighbourResistance = neighbourParticleData.consumeValue;
+        
+        //return currentResistance > neighbourResistance;
+        return false;
+    }
+
     private bool CheckPositionBounds(int x, int y)
     {
-        if (x < 0 || x >= _worldManager.worldSize.x || y < 0 || y >= _worldManager.worldSize.y)
+        if (x < 0 || x >= m_worldManager.worldSize.x || y < 0 || y >= m_worldManager.worldSize.y)
         {
+            //CustomLogger.Log($"({x}, {y}) Position Bounds Check Failed", CustomLogger.LogCategory.ParticleLogic);
             return false;
         }
 
@@ -369,14 +451,13 @@ public class ParticleLogic : MonoBehaviour
     private ParticleMovement[] GetParticleMovements(ParticleType type)
     {
         ParticleData data = ParticleManager.GetParticleData(type);
-        ParticleMovement[] movements = data.movements;
-        return movements == null ? Array.Empty<ParticleMovement>() : movements;
+        return data.movements;
     }
 
     private void SetUpdated(Particle particle, byte value)
     {
         //WorldChunk chunk = _worldManager.GetChunkFromParticlePosition(particle.positionX, particle.positionY);
-        WorldChunk chunk = _worldManager.GetChunk(particle.chunkId);
+        WorldChunk chunk = m_worldManager.GetChunk(particle.chunkId);
         if (chunk == null) return;
 
         chunk.SetParticleUpdated(particle.localPositionX, particle.localPositionY, value);
@@ -390,10 +471,10 @@ public class ParticleLogic : MonoBehaviour
     private Vector2Int GetWorldPos(Vector2 pos)
     {
         int maxIndexX =
-            (_worldManager.worldSize.x / _worldManager.chunkSize.x) - 1; // minus 1 because the index starts as one
-        int maxIndexY = (_worldManager.worldSize.y / _worldManager.chunkSize.y) - 1;
-        WorldChunk minChunk = _worldManager.GetChunk(0, 0);
-        WorldChunk maxChunk = _worldManager.GetChunk(maxIndexX, maxIndexY);
+            (m_worldManager.worldSize.x / m_worldManager.chunkSize.x) - 1; // minus 1 because the index starts as one
+        int maxIndexY = (m_worldManager.worldSize.y / m_worldManager.chunkSize.y) - 1;
+        WorldChunk minChunk = m_worldManager.GetChunk(0, 0);
+        WorldChunk maxChunk = m_worldManager.GetChunk(maxIndexX, maxIndexY);
 
         Renderer minSprite = minChunk.Renderer; // to get the bounds in world space;
         Renderer maxSprite = maxChunk.Renderer; // to get the bounds in world space;
@@ -405,8 +486,8 @@ public class ParticleLogic : MonoBehaviour
 
         float xOldRange = xMax - xMin;
         float yOldRange = yMax - yMin;
-        float xNewRange = _worldManager.worldSize.x;
-        float yNewRange = _worldManager.worldSize.y;
+        float xNewRange = m_worldManager.worldSize.x;
+        float yNewRange = m_worldManager.worldSize.y;
 
         int xPixelPos = (int)((pos.x - xMin) * xNewRange / xOldRange);
         int yPixelPos = (int)((pos.y - yMin) * yNewRange / yOldRange);
@@ -415,4 +496,19 @@ public class ParticleLogic : MonoBehaviour
     }
 
     #endregion
+    
+    public bool IsParticleFlagged(int x, int y)
+    {
+        WorldChunk chunk = m_worldManager.GetChunkFromParticlePosition(x, y);
+        Vector2Int chunkSize = m_worldManager.chunkSize;
+        
+        int pixelPositionX = x % chunkSize.x;
+        int pixelPositionY = y % chunkSize.y;
+        int index = pixelPositionX + pixelPositionY * chunkSize.x;
+        
+        return chunk.GetFlag(index);
+    }
+    
+    
+    
 }

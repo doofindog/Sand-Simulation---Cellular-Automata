@@ -183,7 +183,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pixelPerUnit: 16
-  worldSize: {x: 32, y: 32}
+  worldSize: {x: 128, y: 128}
   chunkSize: {x: 32, y: 32}
   m_chunks: []
   m_particleLogic: {fileID: 949228999}
@@ -340,7 +340,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7382e26a78f00dd4f96928f7169a9228, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParticleLogic
-  _selectedType: 2
+  m_selectedType: 2
   m_updateTime: 0.01
   m_chunkIndex: 0
   m_debug_addParticleInCenter: 0

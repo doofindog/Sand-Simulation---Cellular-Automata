@@ -11,6 +11,10 @@ public class WorldManager : MonoBehaviour
 {
     public static WorldManager instance;
     
+    public static int ChunkSizeX = 32;
+    public static int ChunkSizeY = 32;
+    
+    
     [Tooltip("Pixel size of a particle")]
     public int pixelPerUnit;
     [Tooltip("Size of the World. should be divisible by pixel per unit")]
@@ -48,8 +52,12 @@ public class WorldManager : MonoBehaviour
             yield break;
         }
 
+        ChunkSizeX = chunkSize.x;
+        ChunkSizeY = chunkSize.y;
+
         m_chunkWidth = worldSize.x / chunkSize.x;
         m_chunkHeight = worldSize.y / chunkSize.y;
+        
         int totalChunks = m_chunkWidth * m_chunkHeight;
         
         m_chunks = new WorldChunk[totalChunks];
@@ -152,20 +160,14 @@ public class WorldManager : MonoBehaviour
         return chunk.GetParticleAtIndex(index);
     }
 
-    public ParticleType GetClaimedTypeByPosition(int x, int y)
+    public Particle GetWriteParticle(int x, int y)
     {
         WorldChunk chunk = GetChunkFromParticlePosition(x, y);
         
         int pixelPositionX = x % chunkSize.x;
         int pixelPositionY = y % chunkSize.y;
         int index = pixelPositionX + pixelPositionY * chunkSize.x;
-
-        return chunk.GetClaimsAtIndex(index);
-    }
-
-    public ParticleType GetClaimedTypeByIndex(int chunkId, int index)
-    {
-        WorldChunk chunk = GetChunk(chunkId);
-        return chunk.GetClaimsAtIndex(index);
+        
+        return chunk.GetWriteParticleAtIndex(index);
     }
 }

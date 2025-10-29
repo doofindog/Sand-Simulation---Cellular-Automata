@@ -13,16 +13,31 @@ MonoBehaviour:
   m_Name: Gas
   m_EditorClassIdentifier: 
   particleType: 4
-  colour: {r: 0.49056602, g: 0.45122817, b: 0.45122817, a: 1}
+  colour:
+  - {r: 0.6301887, g: 0.6301887, b: 0.6301887, a: 1}
+  - {r: 0.5622641, g: 0.5622641, b: 0.5622641, a: 1}
+  - {r: 0.4566037, g: 0.4566037, b: 0.4566037, a: 1}
   movements:
-  - moveDir: 9
+  - moveDir: 1
     distance: 1
     chance: 1
   - moveDir: 10
     distance: 1
     chance: 1
-  - moveDir: 10
+  - moveDir: 8
     distance: 1
     chance: 1
-  resistance: -1
-  dispersalRate: 0
+  - moveDir: 2
+    distance: 1
+    chance: 1
+  - moveDir: 11
+    distance: 1
+    chance: 1
+  - moveDir: 7
+    distance: 1
+    chance: 1
+  - moveDir: 3
+    distance: 1
+    chance: 1
+  moveResistance: 1
+  flameResistance: 0
